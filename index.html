@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <title>🚀 4H强弱对比 · 实时涨跌幅差值</title>
+    <title>🚀 4H强弱对比 · 独立纳斯达克频率</title>
     <style>
         /* ===== 响应式设计：手机 → 平板 → 桌面 ===== */
         * {
@@ -22,7 +22,6 @@
             padding-bottom: 30px;
         }
 
-        /* 响应式容器 */
         .container {
             max-width: 100%;
             margin: 0 auto;
@@ -36,12 +35,6 @@
             .container { max-width: 1200px; }
         }
 
-        @media (min-width: 1024px) {
-            body { padding: 24px; }
-            .container { max-width: 1400px; }
-        }
-
-        /* ===== 卡片通用样式 ===== */
         .card {
             background: #1A1E26;
             border: 1px solid #2D3748;
@@ -49,11 +42,6 @@
             padding: 16px;
         }
 
-        @media (min-width: 768px) {
-            .card { padding: 20px; }
-        }
-
-        /* ===== 标题栏 ===== */
         .header {
             display: flex;
             flex-wrap: wrap;
@@ -90,7 +78,6 @@
             box-shadow: 0 0 10px #10B981;
         }
 
-        /* ===== 实时对比卡片 ===== */
         .diff-header {
             display: flex;
             justify-content: space-between;
@@ -146,10 +133,6 @@
             margin-bottom: 4px;
         }
 
-        @media (min-width: 768px) {
-            .coin-price { font-size: 36px; }
-        }
-
         .coin-base {
             font-size: 13px;
             color: #94A3B8;
@@ -165,10 +148,6 @@
             width: 120px;
         }
 
-        @media (min-width: 768px) {
-            .coin-change { width: 140px; font-size: 20px; }
-        }
-
         .vs-badge {
             font-size: 24px;
             font-weight: 800;
@@ -177,7 +156,6 @@
         }
 
         .conclusion {
-            background: #3B82F6;
             border-radius: 40px;
             padding: 14px;
             text-align: center;
@@ -189,12 +167,9 @@
             font-weight: 700;
         }
 
-        /* ===== 币种选择 ===== */
         .selector-group {
             margin-bottom: 16px;
         }
-
-        .selector-group:last-child { margin-bottom: 0; }
 
         .selector-label {
             display: flex;
@@ -252,7 +227,6 @@
         .coin-btn.bnb.active { background: #F3BA2F; color: black; }
         .coin-btn.nasdaq.active { background: #00FF9D; color: black; }
 
-        /* ===== 中栏：频率 + 价格卡片 ===== */
         .mid-panel {
             display: flex;
             flex-direction: column;
@@ -315,7 +289,6 @@
             font-size: 13px;
         }
 
-        /* 频率网格 */
         .freq-row {
             display: flex;
             flex-direction: column;
@@ -365,34 +338,21 @@
             background: #1E2430;
             color: white;
             cursor: pointer;
-            flex: 0 0 auto;
+            flex: 1 0 auto;
         }
 
-        @media (min-width: 768px) {
-            .freq-btn { flex: 1 0 auto; }
+        .freq-btn.active {
+            background: #00FF9D;
+            color: black;
+            font-weight: bold;
         }
 
-        .freq-custom {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            color: #94A3B8;
-            flex-wrap: wrap;
+        .freq-note {
+            font-size: 11px;
+            color: #F59E0B;
+            margin-top: 5px;
         }
 
-        .freq-custom input[type="number"] {
-            width: 65px;
-            padding: 6px 10px;
-            border-radius: 30px;
-            border: 1px solid #2D3748;
-            background: #1E2430;
-            color: white;
-            font-size: 13px;
-            text-align: center;
-        }
-
-        /* ===== 近期记录 - 修复表格错位 ===== */
         .records-card {
             background: #1A1E26;
             border: 1px solid #2D3748;
@@ -418,7 +378,6 @@
             color: #94A3B8;
         }
 
-        /* 表格容器 - 确保完整显示 */
         .table-wrapper {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
@@ -439,7 +398,6 @@
             border-bottom: 1px solid #2D3748;
         }
 
-        .table-row:last-child { border-bottom: none; }
         .table-header { color: #94A3B8; font-weight: 600; }
 
         .col-time { width: 90px; }
@@ -451,7 +409,6 @@
         .col-change2 { width: 90px; text-align: right; }
         .col-strength { flex: 1; text-align: right; font-weight: 700; }
 
-        /* 手机卡片视图（只在手机显示） */
         .mobile-records {
             display: block;
         }
@@ -516,7 +473,6 @@
             font-weight: 700;
         }
 
-        /* ===== AI分析卡片 ===== */
         .ai-card {
             background: #1A1E26;
             border: 1px solid #2D3748;
@@ -569,15 +525,11 @@
             max-height: 350px;
             overflow-y: auto;
             white-space: pre-wrap;
-            word-break: break-word;
         }
 
-        /* 工具类 */
         .up { color: #10B981; }
         .down { color: #EF4444; }
         .equal { color: #94A3B8; }
-        .bg-up { background: rgba(16,185,129,0.1); }
-        .bg-down { background: rgba(239,68,68,0.1); }
         .empty-state {
             text-align: center;
             padding: 30px;
@@ -587,16 +539,14 @@
 </head>
 <body>
     <div class="container">
-        <!-- 标题栏 -->
         <div class="header">
-            <span class="title">⚡ 4H强弱对比 · 实时差值</span>
+            <span class="title">⚡ 4H强弱对比 · 独立纳斯达克频率</span>
             <div class="status-badge">
                 <span class="dot"></span>
-                <span id="statusText">BTC/ETH</span>
+                <span id="statusText">BTC/IXIC</span>
             </div>
         </div>
 
-        <!-- 实时对比卡片 -->
         <div class="card">
             <div class="diff-header">
                 <span class="diff-title">🔥 实时涨跌对比 · 谁比谁多涨？</span>
@@ -612,8 +562,8 @@
                 </div>
                 <span class="vs-badge">VS</span>
                 <div class="coin-block">
-                    <div class="coin-symbol" id="diffSymbol2" style="color: #627EEA;">ETH</div>
-                    <div class="coin-price" id="diffPrice2">$--</div>
+                    <div class="coin-symbol" id="diffSymbol2" style="color: #00FF9D;">IXIC</div>
+                    <div class="coin-price" id="diffPrice2">--</div>
                     <div class="coin-base" id="diffBase2">基准: --</div>
                     <div class="coin-change" id="diffChange2">--</div>
                 </div>
@@ -624,7 +574,6 @@
             </div>
         </div>
 
-        <!-- 币种选择 -->
         <div class="card">
             <div class="selector-group">
                 <div class="selector-label">
@@ -636,37 +585,58 @@
             <div class="selector-group">
                 <div class="selector-label">
                     <span class="selector-label-text">🎯 币种2 · 对比</span>
-                    <span class="selector-hint" id="selectedCoin2Hint">ETH</span>
+                    <span class="selector-hint" id="selectedCoin2Hint">IXIC</span>
                 </div>
                 <div class="coin-scroll" id="coin2Buttons"></div>
             </div>
         </div>
 
-        <!-- 中栏：频率 + 价格卡片 -->
+        <!-- 频率控制 - 加密货币、纳斯达克、记录频率分开 -->
         <div class="mid-panel">
             <div class="freq-card">
                 <div class="freq-row">
                     <div class="freq-item">
                         <div class="freq-header">
-                            <span class="freq-title">⚡ 刷新频率</span>
-                            <span class="freq-value" id="freqRefreshValue">3秒</span>
+                            <span class="freq-title">⚡ 加密货币刷新</span>
+                            <span class="freq-value" id="cryptoFreqValue">1秒</span>
                         </div>
-                        <div class="freq-grid" id="refreshButtons"></div>
-                        <div class="freq-custom">
-                            <input type="checkbox" id="refreshCustom"> 自定义
-                            <input type="number" id="refreshCustomInput" min="1" max="3600" value="3" disabled> 秒
+                        <div class="freq-grid" id="cryptoRefreshButtons">
+                            <button class="freq-btn active" onclick="setCryptoInterval(1, event)">⚡ 1秒</button>
+                            <button class="freq-btn" onclick="setCryptoInterval(3, event)">⚡⚡ 3秒</button>
+                            <button class="freq-btn" onclick="setCryptoInterval(5, event)">⚡⚡⚡ 5秒</button>
                         </div>
+                        <div class="freq-note">加密货币无限制</div>
                     </div>
                     <div class="freq-item">
                         <div class="freq-header">
+                            <span class="freq-title">📊 纳斯达克刷新</span>
+                            <span class="freq-value" id="nasdaqFreqValue">6秒</span>
+                        </div>
+                        <div class="freq-grid" id="nasdaqRefreshButtons">
+                            <button class="freq-btn active" onclick="setNasdaqInterval(6, event)">6秒 (10次/分)</button>
+                            <button class="freq-btn" onclick="setNasdaqInterval(10, event)">10秒 (6次/分)</button>
+                            <button class="freq-btn" onclick="setNasdaqInterval(15, event)">15秒 (4次/分)</button>
+                            <button class="freq-btn" onclick="setNasdaqInterval(30, event)">30秒 (2次/分)</button>
+                            <button class="freq-btn" onclick="setNasdaqInterval(60, event)">60秒 (1次/分)</button>
+                        </div>
+                        <div class="freq-note" id="nasdaqFreqNote">10次/分钟限制</div>
+                    </div>
+                </div>
+                <!-- 记录频率 -->
+                <div class="freq-row" style="margin-top: 16px;">
+                    <div class="freq-item">
+                        <div class="freq-header">
                             <span class="freq-title">📝 记录频率</span>
-                            <span class="freq-value" id="freqRecordValue">10秒</span>
+                            <span class="freq-value" id="recordFreqValue">10秒</span>
                         </div>
-                        <div class="freq-grid" id="recordButtons"></div>
-                        <div class="freq-custom">
-                            <input type="checkbox" id="recordCustom"> 自定义
-                            <input type="number" id="recordCustomInput" min="1" max="3600" value="10" disabled> 秒
+                        <div class="freq-grid" id="recordRefreshButtons">
+                            <button class="freq-btn" onclick="setRecordInterval(5, event)">📋 5秒</button>
+                            <button class="freq-btn active" onclick="setRecordInterval(10, event)">📋📋 10秒</button>
+                            <button class="freq-btn" onclick="setRecordInterval(30, event)">📋📋📋 30秒</button>
+                            <button class="freq-btn" onclick="setRecordInterval(60, event)">📊 1分</button>
+                            <button class="freq-btn" onclick="setRecordInterval(300, event)">📊📊 5分</button>
                         </div>
+                        <div class="freq-note">历史记录保存频率</div>
                     </div>
                 </div>
             </div>
@@ -682,11 +652,11 @@
                     </div>
                 </div>
                 <div class="price-card">
-                    <div class="card-bar" id="card2Bar" style="background: #627EEA;"></div>
+                    <div class="card-bar" id="card2Bar" style="background: #00FF9D;"></div>
                     <div class="card-content">
-                        <div class="card-title" id="card2Title">ETH/USDT</div>
+                        <div class="card-title" id="card2Title">NASDAQ</div>
                         <div>
-                            <span class="card-price" id="card2Price">$0.00</span>
+                            <span class="card-price" id="card2Price">0.00</span>
                             <span class="card-change" id="card2Change">0.00%</span>
                         </div>
                     </div>
@@ -701,12 +671,10 @@
                 <span class="records-time" id="currentTime">⏱️ --:--:--</span>
             </div>
             
-            <!-- 手机卡片视图 -->
             <div id="mobileRecords" class="mobile-records">
                 <div class="empty-state">⏳ 等待数据...</div>
             </div>
             
-            <!-- 桌面表格视图 (带横向滚动，确保完整显示) -->
             <div id="desktopRecords" class="table-wrapper" style="display: none;">
                 <div class="records-table" id="recordsTable"></div>
             </div>
@@ -726,7 +694,6 @@
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>
 ✅ 实时差值：谁比谁多涨？每秒更新<br>
 ✅ 21项技术指标 | 综合评分 | 支撑阻力<br>
-✅ 基于币安4H K线 + DeepSeek大模型<br>
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>
 点击「🚀 深度分析」获取完整对比报告
             </div>
@@ -734,7 +701,6 @@
     </div>
 
     <script>
-        // ============== 完整版 - 支持纳斯达克指数 ==============
         const COLORS = {
             bg: '#0B0E14', surface: '#1A1E26', primary: '#3B82F6',
             btc: '#F7931A', eth: '#627EEA', sol: '#9945FF',
@@ -746,48 +712,40 @@
             { name: 'ETH', symbol: 'ETHUSDT', color: COLORS.eth, display: 'ETH/USDT', class: 'eth' },
             { name: 'SOL', symbol: 'SOLUSDT', color: COLORS.sol, display: 'SOL/USDT', class: 'sol' },
             { name: 'BNB', symbol: 'BNBUSDT', color: COLORS.bnb, display: 'BNB/USDT', class: 'bnb' },
-            { name: 'IXIC', symbol: '^IXIC', color: COLORS.nasdaq, display: 'NASDAQ', class: 'nasdaq' }
+            { name: 'IXIC', symbol: 'nasdaq', color: COLORS.nasdaq, display: 'NASDAQ', class: 'nasdaq' }
         ];
 
-        const REFRESH_OPTIONS = [
-            { name: '1秒', value: 1, icon: '⚡' },
-            { name: '3秒', value: 3, icon: '⚡⚡' },
-            { name: '5秒', value: 5, icon: '⚡⚡⚡' },
-            { name: '10秒', value: 10, icon: '⏱️' },
-            { name: '1分', value: 60, icon: '⏰' }
-        ];
-
-        const RECORD_OPTIONS = [
-            { name: '5秒', value: 5, icon: '📋' },
-            { name: '10秒', value: 10, icon: '📋📋' },
-            { name: '30秒', value: 30, icon: '📋📋📋' },
-            { name: '1分', value: 60, icon: '📊' },
-            { name: '5分', value: 300, icon: '📊📊' }
-        ];
-
-        // 全局状态
-        let selected1 = 0; // BTC
-        let selected2 = 4; // IXIC (纳斯达克)
-        let prices = {};
+        // ========== 独立频率配置 ==========
+        let cryptoInterval = 1;      // 加密货币：1秒
+        let nasdaqInterval = 6;      // 纳斯达克：6秒（遵守10次/分钟）
+        let recordInterval = 10;     // 记录频率：10秒
+        
+        let cryptoPrices = {};
+        let nasdaqPrice = null;
+        
         let basePrices = {};
-        let historyData = []; // 最多5条记录
-        let refreshInterval = 3;
-        let recordInterval = 10;
+        let historyData = [];
+        let lastNasdaqUpdate = 0;
         let lastRecordTime = new Date();
+        
+        let selected1 = 0;
+        let selected2 = 4;
 
-        // 初始化
+        // ========== 初始化 ==========
         function init() {
-            selected1 = 0; // BTC
-            selected2 = 4; // IXIC
+            selected1 = 0;
+            selected2 = 4;
             
             createCoinButtons();
-            createFreqButtons();
             startPriceFetcher();
             startTimeUpdater();
             updateStatusBar();
             
             handleResize();
             window.addEventListener('resize', handleResize);
+            
+            // 初始化频率显示
+            updateFreqDisplay();
         }
 
         function handleResize() {
@@ -841,163 +799,183 @@
             hint2.innerHTML = COINS[selected2].name;
         }
 
-        function createFreqButtons() {
-            const refreshContainer = document.getElementById('refreshButtons');
-            const recordContainer = document.getElementById('recordButtons');
+        // ========== 频率设置函数 ==========
+        function setCryptoInterval(seconds, event) {
+            cryptoInterval = seconds;
+            document.getElementById('cryptoFreqValue').innerHTML = seconds + '秒';
             
-            refreshContainer.innerHTML = '';
-            recordContainer.innerHTML = '';
-            
-            REFRESH_OPTIONS.forEach(opt => {
-                const btn = document.createElement('button');
-                btn.className = 'freq-btn';
-                btn.textContent = `${opt.icon} ${opt.name}`;
-                btn.onclick = () => setRefreshInterval(opt.value);
-                refreshContainer.appendChild(btn);
+            // 更新按钮状态
+            document.querySelectorAll('#cryptoRefreshButtons .freq-btn').forEach(btn => {
+                btn.classList.remove('active');
             });
-            
-            RECORD_OPTIONS.forEach(opt => {
-                const btn = document.createElement('button');
-                btn.className = 'freq-btn';
-                btn.textContent = `${opt.icon} ${opt.name}`;
-                btn.onclick = () => setRecordInterval(opt.value);
-                recordContainer.appendChild(btn);
-            });
-            
-            document.getElementById('refreshCustom').onchange = function(e) {
-                const input = document.getElementById('refreshCustomInput');
-                input.disabled = !e.target.checked;
-                if (e.target.checked) {
-                    input.focus();
-                    setRefreshInterval(parseInt(input.value) || 3);
-                } else {
-                    setRefreshInterval(3);
-                }
-            };
-            document.getElementById('refreshCustomInput').onchange = function(e) {
-                if (document.getElementById('refreshCustom').checked) {
-                    setRefreshInterval(parseInt(e.target.value) || 3);
-                }
-            };
-            
-            document.getElementById('recordCustom').onchange = function(e) {
-                const input = document.getElementById('recordCustomInput');
-                input.disabled = !e.target.checked;
-                if (e.target.checked) {
-                    input.focus();
-                    setRecordInterval(parseInt(input.value) || 10);
-                } else {
-                    setRecordInterval(10);
-                }
-            };
-            document.getElementById('recordCustomInput').onchange = function(e) {
-                if (document.getElementById('recordCustom').checked) {
-                    setRecordInterval(parseInt(e.target.value) || 10);
-                }
-            };
+            event.target.classList.add('active');
         }
 
-        function setRefreshInterval(seconds) {
-            refreshInterval = Math.max(1, Math.min(3600, seconds));
-            document.getElementById('freqRefreshValue').innerHTML = refreshInterval < 60 ? `${refreshInterval}秒` : `${Math.floor(refreshInterval/60)}分`;
-            document.getElementById('refreshRateText').innerHTML = `⚡ ${refreshInterval < 60 ? refreshInterval + '秒' : Math.floor(refreshInterval/60) + '分'}`;
+        function setNasdaqInterval(seconds, event) {
+            if (seconds < 6) seconds = 6; // 强制最小6秒
+            nasdaqInterval = seconds;
+            
+            const timesPerMinute = Math.floor(60 / seconds);
+            document.getElementById('nasdaqFreqValue').innerHTML = seconds + '秒';
+            document.getElementById('nasdaqFreqNote').innerHTML = `${timesPerMinute}次/分钟 (10次/分钟限制)`;
+            
+            // 更新按钮状态
+            document.querySelectorAll('#nasdaqRefreshButtons .freq-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
         }
 
-        function setRecordInterval(seconds) {
-            recordInterval = Math.max(1, Math.min(3600, seconds));
-            document.getElementById('freqRecordValue').innerHTML = recordInterval < 60 ? `${recordInterval}秒` : `${Math.floor(recordInterval/60)}分`;
+        function setRecordInterval(seconds, event) {
+            recordInterval = seconds;
+            document.getElementById('recordFreqValue').innerHTML = seconds + '秒';
+            
+            // 更新按钮状态
+            document.querySelectorAll('#recordRefreshButtons .freq-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        function updateFreqDisplay() {
+            document.getElementById('cryptoFreqValue').innerHTML = cryptoInterval + '秒';
+            document.getElementById('nasdaqFreqValue').innerHTML = nasdaqInterval + '秒';
+            document.getElementById('recordFreqValue').innerHTML = recordInterval + '秒';
+            
+            const timesPerMinute = Math.floor(60 / nasdaqInterval);
+            document.getElementById('nasdaqFreqNote').innerHTML = `${timesPerMinute}次/分钟 (10次/分钟限制)`;
         }
 
         function resetBasePrices() {
             basePrices = {};
-            historyData = []; // 清空历史记录
+            historyData = [];
             updateRecords();
         }
 
-        // 🔥 修复版：支持纳斯达克指数
-        async function fetchPrice(symbol) {
+        // ========== 获取加密货币价格（无限制）==========
+        async function fetchCryptoPrice(symbol) {
             try {
-                // 如果是IXIC，使用Yahoo Finance API
-                if (symbol === '^IXIC') {
-                    // 使用多个代理避免CORS问题
-                    const proxies = [
-                        'https://api.allorigins.win/raw?url=',
-                        'https://cors-anywhere.herokuapp.com/',
-                        'https://yacdn.org/proxy/'
-                    ];
-                    
-                    const yahooUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EIXIC?interval=1d&range=1d';
-                    
-                    // 尝试每个代理
-                    for (let proxy of proxies) {
-                        try {
-                            const response = await fetch(proxy + encodeURIComponent(yahooUrl));
-                            if (!response.ok) continue;
-                            
-                            const data = await response.json();
-                            if (data.chart && data.chart.result && data.chart.result[0]) {
-                                const result = data.chart.result[0];
-                                const meta = result.meta;
-                                const price = meta.regularMarketPrice;
-                                
-                                if (price && price > 0) {
-                                    console.log('纳斯达克指数:', price);
-                                    return price;
-                                }
-                            }
-                        } catch (e) {
-                            console.log('代理失败:', proxy);
-                            continue;
-                        }
-                    }
-                    
-                    // 如果所有代理都失败，返回模拟数据（接近真实值）
-                    console.warn('使用模拟纳斯达克数据');
-                    return 19500 + Math.random() * 100; // 模拟19500点左右
-                } else {
-                    // Binance API
-                    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
-                    if (!res.ok) return null;
-                    const data = await res.json();
-                    return parseFloat(data.price);
-                }
+                const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+                if (!res.ok) return null;
+                const data = await res.json();
+                return parseFloat(data.price);
             } catch (error) {
-                console.error('获取价格失败:', error);
+                console.error('获取加密货币失败:', error);
                 return null;
             }
         }
 
+        // ========== 获取纳斯达克价格（遵守频率限制）==========
+        async function fetchNasdaqPrice() {
+            const now = Date.now();
+            const timeSinceLast = (now - lastNasdaqUpdate) / 1000;
+            
+            // 检查频率限制
+            if (timeSinceLast < nasdaqInterval) {
+                return null;
+            }
+            
+            try {
+                const proxyUrl = 'https://api.allorigins.win/raw?url=';
+                const targetUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EIXIC';
+                
+                const response = await fetch(proxyUrl + encodeURIComponent(targetUrl));
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.chart && data.chart.result && data.chart.result.length > 0) {
+                    const result = data.chart.result[0];
+                    const price = result.meta?.regularMarketPrice;
+                    
+                    if (price) {
+                        lastNasdaqUpdate = now;
+                        return price;
+                    }
+                }
+                
+                return null;
+                
+            } catch (error) {
+                console.error('获取纳斯达克失败:', error);
+                return null;
+            }
+        }
+
+        // ========== 价格获取循环 - 独立控制 ==========
         function startPriceFetcher() {
-            async function loop() {
+            // 加密货币循环（无限制）
+            async function cryptoLoop() {
                 const coin1 = COINS[selected1];
                 const coin2 = COINS[selected2];
                 
-                const p1 = await fetchPrice(coin1.symbol);
-                const p2 = await fetchPrice(coin2.symbol);
+                // 如果选了加密货币，就更新
+                if (coin1.symbol !== 'nasdaq') {
+                    const price = await fetchCryptoPrice(coin1.symbol);
+                    if (price) cryptoPrices[coin1.symbol] = price;
+                }
                 
-                if (p1) prices[coin1.symbol] = p1;
-                if (p2) prices[coin2.symbol] = p2;
+                if (coin2.symbol !== 'nasdaq') {
+                    const price = await fetchCryptoPrice(coin2.symbol);
+                    if (price) cryptoPrices[coin2.symbol] = price;
+                }
                 
-                if (!basePrices[coin1.symbol] && p1) basePrices[coin1.symbol] = p1;
-                if (!basePrices[coin2.symbol] && p2) basePrices[coin2.symbol] = p2;
-                
+                // 更新显示
                 updateDiff();
                 updatePriceCards();
                 
-                const now = new Date();
-                if (historyData.length === 0 || (now - lastRecordTime) >= recordInterval * 1000) {
-                    if (p1 && p2) {
-                        recordHistory(coin1, coin2, p1, p2);
+                setTimeout(cryptoLoop, cryptoInterval * 1000);
+            }
+            
+            // 纳斯达克循环（受频率限制）
+            async function nasdaqLoop() {
+                const price = await fetchNasdaqPrice();
+                if (price) {
+                    nasdaqPrice = price;
+                    
+                    // 如果是当前选中的币种，记录基准价格
+                    const coin1 = COINS[selected1];
+                    const coin2 = COINS[selected2];
+                    
+                    if (coin1.symbol === 'nasdaq' && !basePrices[coin1.symbol]) {
+                        basePrices[coin1.symbol] = price;
                     }
-                    lastRecordTime = now;
+                    if (coin2.symbol === 'nasdaq' && !basePrices[coin2.symbol]) {
+                        basePrices[coin2.symbol] = price;
+                    }
+                    
+                    // 更新显示
+                    updateDiff();
+                    updatePriceCards();
                 }
                 
-                setTimeout(loop, refreshInterval * 1000);
+                setTimeout(nasdaqLoop, nasdaqInterval * 1000);
             }
-            loop();
+            
+            // 记录历史循环（按记录频率）
+            async function recordLoop() {
+                const coin1 = COINS[selected1];
+                const coin2 = COINS[selected2];
+                
+                const price1 = coin1.symbol === 'nasdaq' ? nasdaqPrice : (cryptoPrices[coin1.symbol] || 0);
+                const price2 = coin2.symbol === 'nasdaq' ? nasdaqPrice : (cryptoPrices[coin2.symbol] || 0);
+                
+                if (price1 && price2) {
+                    recordHistory(coin1, coin2, price1, price2);
+                }
+                
+                setTimeout(recordLoop, recordInterval * 1000);
+            }
+            
+            // 启动三个独立循环
+            cryptoLoop();
+            nasdaqLoop();
+            recordLoop();
         }
 
-        // 记录历史 - 最多5条
         function recordHistory(coin1, coin2, price1, price2) {
             const base1 = basePrices[coin1.symbol] || price1;
             const base2 = basePrices[coin2.symbol] || price2;
@@ -1023,7 +1001,6 @@
                 changeSinceStart2: change2
             });
             
-            // 只保留最后5条
             if (historyData.length > 5) {
                 historyData = historyData.slice(-5);
             }
@@ -1035,8 +1012,9 @@
             const coin1 = COINS[selected1];
             const coin2 = COINS[selected2];
             
-            const price1 = prices[coin1.symbol] || 0;
-            const price2 = prices[coin2.symbol] || 0;
+            const price1 = coin1.symbol === 'nasdaq' ? nasdaqPrice : (cryptoPrices[coin1.symbol] || 0);
+            const price2 = coin2.symbol === 'nasdaq' ? nasdaqPrice : (cryptoPrices[coin2.symbol] || 0);
+            
             const base1 = basePrices[coin1.symbol] || price1;
             const base2 = basePrices[coin2.symbol] || price2;
             
@@ -1051,11 +1029,18 @@
                 return;
             }
             
-            // 纳斯达克不显示$符号
-            const p1Str = coin1.name === 'IXIC' ? price1.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : `$${price1.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            const p2Str = coin2.name === 'IXIC' ? price2.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : `$${price2.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            const b1Str = coin1.name === 'IXIC' ? base1.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : `$${base1.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            const b2Str = coin2.name === 'IXIC' ? base2.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : `$${base2.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            const formatPrice = (price, isNasdaq) => {
+                if (isNasdaq) {
+                    return price.toFixed(2);
+                } else {
+                    return '$' + price.toFixed(2);
+                }
+            };
+            
+            const p1Str = formatPrice(price1, coin1.name === 'IXIC');
+            const p2Str = formatPrice(price2, coin2.name === 'IXIC');
+            const b1Str = formatPrice(base1, coin1.name === 'IXIC');
+            const b2Str = formatPrice(base2, coin2.name === 'IXIC');
             
             document.getElementById('diffPrice1').textContent = p1Str;
             document.getElementById('diffPrice2').textContent = p2Str;
@@ -1082,17 +1067,17 @@
             
             if (Math.abs(diff) < 0.01) {
                 resultText = '➖ 持平';
+                resultColor = '#64748B';
             } else if (diff > 0) {
-                if (change1 > 0 && change2 > 0) resultText = `🔥 ${coin1.name} 多涨 ${diff.toFixed(2)}%`;
-                else if (change1 < 0 && change2 < 0) resultText = `💔 ${coin1.name} 少跌 ${Math.abs(diff).toFixed(2)}%`;
-                else resultText = `🔥 ${coin1.name} 强势 ${diff > 0 ? '+' : ''}${diff.toFixed(2)}%`;
+                resultText = `🔥 ${coin1.name} 强势 +${diff.toFixed(2)}%`;
+                resultColor = '#10B981';
             } else {
-                if (change1 > 0 && change2 > 0) resultText = `🔥 ${coin2.name} 多涨 ${Math.abs(diff).toFixed(2)}%`;
-                else if (change1 < 0 && change2 < 0) resultText = `💔 ${coin2.name} 少跌 ${Math.abs(diff).toFixed(2)}%`;
-                else resultText = `🔥 ${coin2.name} 强势 ${diff > 0 ? '+' : ''}${diff.toFixed(2)}%`;
+                resultText = `🔥 ${coin2.name} 强势 +${Math.abs(diff).toFixed(2)}%`;
+                resultColor = '#10B981';
             }
             
             document.getElementById('conclusionText').textContent = resultText;
+            document.getElementById('conclusionContainer').style.background = resultColor;
         }
 
         function updatePriceCards() {
@@ -1104,16 +1089,20 @@
             document.getElementById('card2Title').textContent = coin2.display;
             document.getElementById('card2Bar').style.background = coin2.color;
             
-            const price1 = prices[coin1.symbol] || 0;
-            const price2 = prices[coin2.symbol] || 0;
+            const price1 = coin1.symbol === 'nasdaq' ? nasdaqPrice : (cryptoPrices[coin1.symbol] || 0);
+            const price2 = coin2.symbol === 'nasdaq' ? nasdaqPrice : (cryptoPrices[coin2.symbol] || 0);
             
-            const p1Str = coin1.name === 'IXIC' ? (price1 ? price1.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '0.00') : (price1 ? `$${price1.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '$0.00');
-            const p2Str = coin2.name === 'IXIC' ? (price2 ? price2.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '0.00') : (price2 ? `$${price2.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '$0.00');
+            const formatPrice = (price, isNasdaq) => {
+                if (!price) return isNasdaq ? '0.00' : '$0.00';
+                if (isNasdaq) {
+                    return price.toFixed(2);
+                } else {
+                    return '$' + price.toFixed(2);
+                }
+            };
             
-            document.getElementById('card1Price').textContent = p1Str;
-            document.getElementById('card2Price').textContent = p2Str;
-            document.getElementById('card1Change').textContent = '0.00%';
-            document.getElementById('card2Change').textContent = '0.00%';
+            document.getElementById('card1Price').textContent = formatPrice(price1, coin1.name === 'IXIC');
+            document.getElementById('card2Price').textContent = formatPrice(price2, coin2.name === 'IXIC');
         }
 
         function updateRecords() {
@@ -1126,7 +1115,6 @@
                 return;
             }
             
-            // 手机卡片 - 最多5条
             let mobileHtml = '';
             historyData.slice().reverse().forEach(data => {
                 const timeStr = data.time.toLocaleTimeString();
@@ -1136,18 +1124,10 @@
                 const change2Str = `${data.change2 > 0 ? '+' : ''}${data.change2.toFixed(2)}%`;
                 
                 const diff = data.change1 - data.change2;
-                let strengthText = '', strengthClass = '';
-                
-                if (Math.abs(diff) < 0.01) {
-                    strengthText = '= 持平';
-                    strengthClass = 'equal';
-                } else if (diff > 0) {
-                    strengthText = `▲ ${data.name1} 强 +${diff.toFixed(2)}%`;
-                    strengthClass = 'up';
-                } else {
-                    strengthText = `▲ ${data.name2} 强 +${Math.abs(diff).toFixed(2)}%`;
-                    strengthClass = 'up';
-                }
+                let strengthText = '';
+                if (Math.abs(diff) < 0.01) strengthText = '= 持平';
+                else if (diff > 0) strengthText = `▲ ${data.name1} +${diff.toFixed(2)}%`;
+                else strengthText = `▲ ${data.name2} +${Math.abs(diff).toFixed(2)}%`;
                 
                 mobileHtml += `
                     <div class="record-item">
@@ -1157,25 +1137,24 @@
                         </div>
                         <div class="record-detail">
                             <div class="record-coin-detail">
-                                <div class="record-coin-name" style="color: ${data.color1};">${data.name1}</div>
-                                <div class="record-coin-price">${price1Str}</div>
+                                <div style="color: ${data.color1};">${data.name1}</div>
+                                <div>${price1Str}</div>
                                 <div class="${data.change1 >= 0 ? 'up' : 'down'}">${change1Str}</div>
                             </div>
-                            <span style="color: #64748B;">VS</span>
+                            <span>VS</span>
                             <div class="record-coin-detail">
-                                <div class="record-coin-name" style="color: ${data.color2};">${data.name2}</div>
-                                <div class="record-coin-price">${price2Str}</div>
+                                <div style="color: ${data.color2};">${data.name2}</div>
+                                <div>${price2Str}</div>
                                 <div class="${data.change2 >= 0 ? 'up' : 'down'}">${change2Str}</div>
                             </div>
                         </div>
-                        <div class="record-strength ${strengthClass}">${strengthText}</div>
+                        <div class="record-strength ${Math.abs(diff) < 0.01 ? 'equal' : 'up'}">${strengthText}</div>
                     </div>
                 `;
             });
             
             mobileContainer.innerHTML = mobileHtml;
             
-            // 桌面表格 - 最多5条
             let tableHtml = `
                 <div class="table-row table-header">
                     <span class="col-time">时间</span>
@@ -1239,13 +1218,12 @@
             updateStatusBar();
         }
 
-        // AI分析简化版
-        document.getElementById('analyzeBtn').onclick = async function() {
+        document.getElementById('analyzeBtn').onclick = function() {
             const coin1 = COINS[selected1];
             const coin2 = COINS[selected2];
             
-            const cur1 = prices[coin1.symbol] || 0;
-            const cur2 = prices[coin2.symbol] || 0;
+            const cur1 = coin1.symbol === 'nasdaq' ? nasdaqPrice : (cryptoPrices[coin1.symbol] || 0);
+            const cur2 = coin2.symbol === 'nasdaq' ? nasdaqPrice : (cryptoPrices[coin2.symbol] || 0);
             
             if (!cur1 || !cur2) {
                 document.getElementById('aiContent').innerHTML = '⚠️ 等待价格数据...';
@@ -1272,7 +1250,7 @@
 【📈 实时涨跌幅差值】
 ${strengthText}
 
-${coin1.name}: ${coin1.name === 'IXIC' ? cur1.toFixed(2) : '$' + cur1.toFixed(2)} 
+${coin1.name}: ${coin1.name === 'IXIC' ? cur1.toFixed(2) : '$' + cur1.toFixed(2)}
 基准: ${coin1.name === 'IXIC' ? base1.toFixed(2) : '$' + base1.toFixed(2)}
 涨跌: ${change1 > 0 ? '+' : ''}${change1.toFixed(2)}%
 
@@ -1281,7 +1259,7 @@ ${coin2.name}: ${coin2.name === 'IXIC' ? cur2.toFixed(2) : '$' + cur2.toFixed(2)
 涨跌: ${change2 > 0 ? '+' : ''}${change2.toFixed(2)}%
 
 【📊 4H技术分析】
-正在获取K线数据...
+点击「🚀 深度分析」使用DeepSeek API获取完整报告
             `;
         };
 
