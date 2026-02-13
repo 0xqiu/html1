@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CryptoCompare - 加密货币强弱对比</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0B0E14;
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #3B82F6;
+            margin-bottom: 10px;
+        }
+        .time {
+            text-align: center;
+            font-size: 14px;
+            color: #94A3B8;
+            margin-bottom: 20px;
+        }
+        .selector {
+            background: #1E2430;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .selector-title {
+            font-size: 14px;
+            color: #94A3B8;
+            margin-bottom: 10px;
+        }
+        .coin-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .coin-btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            background: #1A1E26;
+            color: #94A3B8;
+            transition: all 0.2s;
+        }
+        .coin-btn.active {
+            color: #fff;
+        }
+        .coin-btn.btc.active { background: #F7931A; }
+        .coin-btn.eth.active { background: #627EEA; }
+        .coin-btn.sol.active { background: #9945FF; }
+        .coin-btn.bnb.active { background: #F3BA2F; }
+        .coin-btn.nasdaq.active { background: #00FF9D; color: #000; }
+        
+        .compare-box {
+            background: #1E2430;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+        .coins-row {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        .coin-info {
+            text-align: center;
+            flex: 1;
+        }
+        .coin-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .coin-price {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 8px 0;
+        }
+        .coin-change {
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .up { color: #10B981; }
+        .down { color: #EF4444; }
+        
+        .divider {
+            width: 1px;
+            height: 80px;
+            background: #2D3748;
+        }
+        
+        .diff-box {
+            background: #1A1E26;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            margin-top: 15px;
+        }
+        .diff-text {
+            font-size: 22px;
+            font-weight: bold;
+        }
+        .status {
+            text-align: center;
+            font-size: 12px;
+            color: #64748B;
+            margin-top: 20px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #94A3B8;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">🔥 CryptoCompare</div>
+    <div class="time" id="time">--:--:--</div>
+    
+    <div class="selector">
+        <div class="selector-title">选择对比币种</div>
+        <div style="margin-bottom: 15px;">
+            <div class="selector-title">币种1</div>
+            <div class="coin-buttons" id="coin1-buttons"></div>
+        </div>
+        <div>
+            <div class="selector-title">币种2</div>
+            <div class="coin-buttons" id="coin2-buttons"></div>
+        </div>
+    </div>
+    
+    <div class="compare-box">
+        <div class="coins-row">
+            <div class="coin-info">
+                <div class="coin-name" id="name1" style="color: #F7931A">BTC</div>
+                <div class="coin-price" id="price1">---</div>
+                <div class="coin-change" id="change1">---</div>
+            </div>
+            <div class="divider"></div>
+            <div class="coin-info">
+                <div class="coin-name" id="name2" style="color: #627EEA">ETH</div>
+                <div class="coin-price" id="price2">---</div>
+                <div class="coin-change" id="change2">---</div>
+            </div>
+        </div>
+        <div class="diff-box">
+            <div class="diff-text" id="diff">等待数据...</div>
+        </div>
+    </div>
+    
+    <div class="status" id="status">🟡 正在连接...</div>
+
+    <script>
+        const coins = [
+            { name: 'BTC', symbol: 'BTCUSDT', color: '#F7931A', class: 'btc' },
+            { name: 'ETH', symbol: 'ETHUSDT', color: '#627EEA', class: 'eth' },
+            { name: 'SOL', symbol: 'SOLUSDT', color: '#9945FF', class: 'sol' },
+            { name: 'BNB', symbol: 'BNBUSDT', color: '#F3BA2F', class: 'bnb' },
+            { name: 'IXIC', symbol: '^IXIC', color: '#00FF9D', class: 'nasdaq' }
+        ];
+        
+        let selected1 = 0;
+        let selected2 = 1;
+        
+        function createButtons() {
+            const container1 = document.getElementById('coin1-buttons');
+            const container2 = document.getElementById('coin2-buttons');
+            
+            coins.forEach((coin, i) => {
+                const btn1 = document.createElement('button');
+                btn1.className = `coin-btn ${coin.class} ${i === selected1 ? 'active' : ''}`;
+                btn1.textContent = coin.name;
+                btn1.onclick = () => { selected1 = i; createButtons(); updateDisplay(); };
+                container1.appendChild(btn1);
+                
+                const btn2 = document.createElement('button');
+                btn2.className = `coin-btn ${coin.class} ${i === selected2 ? 'active' : ''}`;
+                btn2.textContent = coin.name;
+                btn2.onclick = () => { selected2 = i; createButtons(); updateDisplay(); };
+                container2.appendChild(btn2);
+            });
+        }
+        
+        function formatPrice(price, name) {
+            if (name === 'IXIC') return price.toLocaleString();
+            return price.toLocaleString();
+        }
+        
+        function formatChange(change) {
+            return (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
+        }
+        
+        async function fetchPrice(symbol) {
+            try {
+                if (symbol === '^IXIC') {
+                    const response = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/%5EIXIC?interval=1d&range=2d');
+                    const data = await response.json();
+                    const result = data.chart.result[0];
+                    const closes = result.indicators.quote[0].close;
+                    const prev = closes[closes.length - 2];
+                    const last = closes[closes.length - 1];
+                    const change = ((last - prev) / prev) * 100;
+                    return { price: last, change: change };
+                } else {
+                    const [priceRes, changeRes] = await Promise.all([
+                        fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`),
+                        fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`)
+                    ]);
+                    const priceData = await priceRes.json();
+                    const changeData = await changeRes.json();
+                    return { 
+                        price: parseFloat(priceData.price), 
+                        change: parseFloat(changeData.priceChangePercent) 
+                    };
+                }
+            } catch (e) {
+                console.error(e);
+                return null;
+            }
+        }
+        
+        async function updateDisplay() {
+            const coin1 = coins[selected1];
+            const coin2 = coins[selected2];
+            
+            document.getElementById('name1').textContent = coin1.name;
+            document.getElementById('name1').style.color = coin1.color;
+            document.getElementById('name2').textContent = coin2.name;
+            document.getElementById('name2').style.color = coin2.color;
+            
+            const data1 = await fetchPrice(coin1.symbol);
+            const data2 = await fetchPrice(coin2.symbol);
+            
+            if (data1 && data2) {
+                document.getElementById('price1').textContent = formatPrice(data1.price, coin1.name);
+                document.getElementById('price2').textContent = formatPrice(data2.price, coin2.name);
+                
+                const change1El = document.getElementById('change1');
+                const change2El = document.getElementById('change2');
+                
+                change1El.textContent = formatChange(data1.change);
+                change1El.className = 'coin-change ' + (data1.change >= 0 ? 'up' : 'down');
+                
+                change2El.textContent = formatChange(data2.change);
+                change2El.className = 'coin-change ' + (data2.change >= 0 ? 'up' : 'down');
+                
+                const diff = data1.change - data2.change;
+                const diffEl = document.getElementById('diff');
+                
+                if (diff > 0.1) {
+                    diffEl.textContent = `▲ ${coin1.name}强 +${diff.toFixed(2)}%`;
+                    diffEl.className = 'diff-text up';
+                } else if (diff < -0.1) {
+                    diffEl.textContent = `▼ ${coin2.name}强 +${Math.abs(diff).toFixed(2)}%`;
+                    diffEl.className = 'diff-text down';
+                } else {
+                    diffEl.textContent = '= 持平';
+                    diffEl.className = 'diff-text';
+                    diffEl.style.color = '#94A3B8';
+                }
+                
+                document.getElementById('status').textContent = '🟢 实时更新中';
+            } else {
+                document.getElementById('status').textContent = '🔴 连接失败';
+            }
+        }
+        
+        function updateTime() {
+            document.getElementById('time').textContent = new Date().toLocaleTimeString();
+        }
+        
+        createButtons();
+        updateDisplay();
+        setInterval(() => { updateDisplay(); updateTime(); }, 3000);
+        setInterval(updateTime, 1000);
+    </script>
+</body>
+</html>
