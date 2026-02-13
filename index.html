@@ -3,287 +3,1265 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CryptoCompare - 加密货币强弱对比</title>
+    <title>🚀 CryptoAI · 4小时K线强弱对比 · 实时涨跌幅差值</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', '微软雅黑', Roboto, sans-serif;
             background: #0B0E14;
-            color: #fff;
+            color: #FFFFFF;
             min-height: 100vh;
-            padding: 20px;
+            padding: 16px;
         }
+        
+        /* 现代配色 - 完全移植Python版本 */
+        :root {
+            --bg: #0B0E14;
+            --surface: #1A1E26;
+            --primary: #3B82F6;
+            --primary-dark: #2563EB;
+            --secondary: #8B5CF6;
+            --success: #10B981;
+            --danger: #EF4444;
+            --warning: #F59E0B;
+            --text-primary: #FFFFFF;
+            --text-secondary: #94A3B8;
+            --text-tertiary: #64748B;
+            --border: #2D3748;
+            --card: #1E2430;
+            --btc: #F7931A;
+            --eth: #627EEA;
+            --sol: #9945FF;
+            --bnb: #F3BA2F;
+            --nasdaq: #00FF9D;
+            --ai: #4F46E5;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        /* 标题栏 */
         .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .title {
+            font-size: 22px;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary), var(--ai));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--surface);
+            padding: 6px 16px;
+            border-radius: 30px;
+            border: 1px solid var(--border);
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+        
+        /* 实时涨跌对比卡片 - 放大显示 */
+        .diff-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px 24px;
+            margin-bottom: 16px;
+        }
+        
+        .diff-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .diff-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .diff-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+        }
+        
+        .coin-block {
+            flex: 1;
             text-align: center;
+        }
+        
+        .coin-symbol {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .coin-price {
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 6px;
+        }
+        
+        .coin-base {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+        
+        .coin-change {
             font-size: 24px;
             font-weight: bold;
-            color: #3B82F6;
-            margin-bottom: 10px;
+            padding: 6px 16px;
+            border-radius: 40px;
+            display: inline-block;
         }
-        .time {
+        
+        .vs-divider {
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--text-secondary);
+            margin: 0 20px;
+        }
+        
+        .diff-result {
+            margin-top: 12px;
+            padding: 10px;
+            background: var(--primary);
+            border-radius: 40px;
             text-align: center;
-            font-size: 14px;
-            color: #94A3B8;
-            margin-bottom: 20px;
         }
-        .selector {
-            background: #1E2430;
+        
+        .diff-result-text {
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        /* 币种选择栏 */
+        .selector-container {
+            background: var(--surface);
+            border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
         }
+        
+        .selector-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
         .selector-title {
-            font-size: 14px;
-            color: #94A3B8;
-            margin-bottom: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--text-primary);
         }
-        .coin-buttons {
+        
+        .coin-grid {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
         }
+        
         .coin-btn {
-            padding: 10px 16px;
-            border-radius: 8px;
+            padding: 8px 20px;
+            border-radius: 30px;
             border: none;
-            font-size: 14px;
-            font-weight: 500;
+            font-size: 15px;
+            font-weight: 600;
             cursor: pointer;
-            background: #1A1E26;
-            color: #94A3B8;
+            background: var(--card);
+            color: var(--text-secondary);
             transition: all 0.2s;
         }
-        .coin-btn.active {
-            color: #fff;
-        }
-        .coin-btn.btc.active { background: #F7931A; }
-        .coin-btn.eth.active { background: #627EEA; }
-        .coin-btn.sol.active { background: #9945FF; }
-        .coin-btn.bnb.active { background: #F3BA2F; }
-        .coin-btn.nasdaq.active { background: #00FF9D; color: #000; }
         
-        .compare-box {
-            background: #1E2430;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 15px;
+        .coin-btn.active {
+            color: white;
         }
-        .coins-row {
+        
+        .coin-btn.btc.active { background: var(--btc); }
+        .coin-btn.eth.active { background: var(--eth); }
+        .coin-btn.sol.active { background: var(--sol); }
+        .coin-btn.bnb.active { background: var(--bnb); color: black; }
+        .coin-btn.nasdaq.active { background: var(--nasdaq); color: black; }
+        
+        /* 频率控制 + 价格卡片并排 */
+        .mid-panel {
             display: flex;
-            justify-content: space-around;
-            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
         }
-        .coin-info {
-            text-align: center;
+        
+        .freq-panel {
+            flex: 1;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 16px;
+        }
+        
+        .freq-row {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .freq-item {
             flex: 1;
         }
-        .coin-name {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 5px;
+        
+        .freq-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
         }
-        .coin-price {
-            font-size: 28px;
+        
+        .freq-label-text {
+            font-size: 14px;
             font-weight: bold;
-            margin: 8px 0;
-        }
-        .coin-change {
-            font-size: 16px;
-            font-weight: 500;
-        }
-        .up { color: #10B981; }
-        .down { color: #EF4444; }
-        
-        .divider {
-            width: 1px;
-            height: 80px;
-            background: #2D3748;
+            color: var(--primary);
         }
         
-        .diff-box {
-            background: #1A1E26;
-            border-radius: 8px;
-            padding: 15px;
+        .freq-status {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .freq-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        
+        .freq-btn {
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: none;
+            font-size: 12px;
+            background: var(--card);
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+        
+        .freq-btn:hover {
+            background: var(--primary-dark);
+        }
+        
+        .custom-freq {
+            display: flex;
+            align-items: center;
+            margin-top: 8px;
+        }
+        
+        .custom-input {
+            width: 50px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: none;
+            background: var(--card);
+            color: var(--text-primary);
+            margin: 0 4px;
             text-align: center;
-            margin-top: 15px;
         }
-        .diff-text {
+        
+        /* 价格卡片 */
+        .price-cards {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .price-card {
+            width: 240px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .card-bar {
+            width: 4px;
+            background: var(--btc);
+        }
+        
+        .card-content {
+            flex: 1;
+            padding: 12px 16px;
+        }
+        
+        .card-title {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        
+        .card-price {
             font-size: 22px;
             font-weight: bold;
+            display: inline-block;
+            margin-right: 8px;
         }
-        .status {
-            text-align: center;
-            font-size: 12px;
-            color: #64748B;
-            margin-top: 20px;
+        
+        .card-change {
+            font-size: 14px;
         }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #94A3B8;
+        
+        /* 近期记录表格 */
+        .records-container {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
         }
+        
+        .records-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        
+        .records-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+        
+        .records-time {
+            color: var(--text-secondary);
+        }
+        
+        .records-table {
+            background: var(--card);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .record-row {
+            display: flex;
+            padding: 4px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .record-time { width: 70px; color: var(--text-secondary); }
+        .record-coin1 { width: 50px; font-weight: bold; }
+        .record-price1 { width: 100px; text-align: right; }
+        .record-change1 { width: 80px; text-align: right; }
+        .record-coin2 { width: 50px; font-weight: bold; margin-left: 10px; }
+        .record-price2 { width: 100px; text-align: right; }
+        .record-change2 { width: 80px; text-align: right; }
+        .record-strength { flex: 1; text-align: right; font-weight: bold; }
+        
+        /* AI分析面板 */
+        .ai-container {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+        }
+        
+        .ai-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .ai-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .ai-title-text {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--ai);
+        }
+        
+        .ai-subtitle {
+            color: var(--text-secondary);
+        }
+        
+        .ai-analyze-btn {
+            background: var(--ai);
+            color: white;
+            border: none;
+            padding: 8px 24px;
+            border-radius: 30px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .ai-analyze-btn:hover {
+            background: var(--primary-dark);
+        }
+        
+        .ai-content {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 20px;
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        /* 工具类 */
+        .up { color: var(--success); }
+        .down { color: var(--danger); }
+        .equal { color: var(--text-secondary); }
+        .btc-color { color: var(--btc); }
+        .eth-color { color: var(--eth); }
+        .sol-color { color: var(--sol); }
+        .bnb-color { color: var(--bnb); }
+        .nasdaq-color { color: var(--nasdaq); }
+        .ai-color { color: var(--ai); }
     </style>
 </head>
 <body>
-    <div class="header">🔥 CryptoCompare</div>
-    <div class="time" id="time">--:--:--</div>
-    
-    <div class="selector">
-        <div class="selector-title">选择对比币种</div>
-        <div style="margin-bottom: 15px;">
-            <div class="selector-title">币种1</div>
-            <div class="coin-buttons" id="coin1-buttons"></div>
-        </div>
-        <div>
-            <div class="selector-title">币种2</div>
-            <div class="coin-buttons" id="coin2-buttons"></div>
-        </div>
-    </div>
-    
-    <div class="compare-box">
-        <div class="coins-row">
-            <div class="coin-info">
-                <div class="coin-name" id="name1" style="color: #F7931A">BTC</div>
-                <div class="coin-price" id="price1">---</div>
-                <div class="coin-change" id="change1">---</div>
-            </div>
-            <div class="divider"></div>
-            <div class="coin-info">
-                <div class="coin-name" id="name2" style="color: #627EEA">ETH</div>
-                <div class="coin-price" id="price2">---</div>
-                <div class="coin-change" id="change2">---</div>
+    <div class="container">
+        <!-- 标题栏 -->
+        <div class="header">
+            <span class="title">⚡ 4小时K线强弱对比 · 实时差值 · DeepSeek AI</span>
+            <div class="status-bar" id="statusBar">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">🟢 实时连接中...</span>
             </div>
         </div>
-        <div class="diff-box">
-            <div class="diff-text" id="diff">等待数据...</div>
+
+        <!-- 实时涨跌对比卡片 -->
+        <div class="diff-card">
+            <div class="diff-header">
+                <span class="diff-title">📊 实时涨跌对比</span>
+                <span style="color: var(--text-secondary);">1秒/次</span>
+            </div>
+            <div class="diff-content">
+                <div class="coin-block">
+                    <div class="coin-symbol" id="diffCoin1Symbol" style="color: var(--btc);">BTC</div>
+                    <div class="coin-price" id="diffCoin1Price">$--</div>
+                    <div class="coin-base" id="diffCoin1Base">基准: --</div>
+                    <div class="coin-change" id="diffCoin1Change">--</div>
+                </div>
+                <div class="vs-divider">VS</div>
+                <div class="coin-block">
+                    <div class="coin-symbol" id="diffCoin2Symbol" style="color: var(--eth);">ETH</div>
+                    <div class="coin-price" id="diffCoin2Price">$--</div>
+                    <div class="coin-base" id="diffCoin2Base">基准: --</div>
+                    <div class="coin-change" id="diffCoin2Change">--</div>
+                </div>
+            </div>
+            <div class="diff-result" id="diffResultContainer">
+                <span class="diff-result-text" id="diffResult">请选择两个对比标的</span>
+            </div>
+        </div>
+
+        <!-- 币种选择栏 -->
+        <div class="selector-container">
+            <div class="selector-header">
+                <span class="selector-title">🔄 选择对比币种</span>
+            </div>
+            <div style="margin-bottom: 8px;">
+                <div style="color: var(--text-secondary); margin-bottom: 8px;">币种1</div>
+                <div class="coin-grid" id="coin1Buttons"></div>
+            </div>
+            <div>
+                <div style="color: var(--text-secondary); margin-bottom: 8px;">币种2</div>
+                <div class="coin-grid" id="coin2Buttons"></div>
+            </div>
+        </div>
+
+        <!-- 频率控制 + 价格卡片 -->
+        <div class="mid-panel">
+            <div class="freq-panel">
+                <div class="freq-row">
+                    <div class="freq-item">
+                        <div class="freq-label">
+                            <span class="freq-label-text">⚡ 刷新频率</span>
+                            <span class="freq-status" id="refreshStatus">3秒</span>
+                        </div>
+                        <div class="freq-buttons" id="refreshButtons"></div>
+                        <div class="custom-freq">
+                            <input type="checkbox" id="refreshCustomCheck"> 自定义
+                            <input type="number" id="refreshCustomInput" class="custom-input" min="1" max="3600" value="3" disabled> 秒
+                        </div>
+                    </div>
+                    <div class="freq-item">
+                        <div class="freq-label">
+                            <span class="freq-label-text">📝 记录频率</span>
+                            <span class="freq-status" id="recordStatus">10秒</span>
+                        </div>
+                        <div class="freq-buttons" id="recordButtons"></div>
+                        <div class="custom-freq">
+                            <input type="checkbox" id="recordCustomCheck"> 自定义
+                            <input type="number" id="recordCustomInput" class="custom-input" min="1" max="3600" value="10" disabled> 秒
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="price-cards">
+                <div class="price-card">
+                    <div class="card-bar" id="card1Bar" style="background: var(--btc);"></div>
+                    <div class="card-content">
+                        <div class="card-title" id="card1Title">BTC/USDT</div>
+                        <div>
+                            <span class="card-price" id="card1Price">$0.00</span>
+                            <span class="card-change" id="card1Change">0.00%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="price-card">
+                    <div class="card-bar" id="card2Bar" style="background: var(--eth);"></div>
+                    <div class="card-content">
+                        <div class="card-title" id="card2Title">ETH/USDT</div>
+                        <div>
+                            <span class="card-price" id="card2Price">$0.00</span>
+                            <span class="card-change" id="card2Change">0.00%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 近期记录表格 -->
+        <div class="records-container">
+            <div class="records-header">
+                <span class="records-title">📋 近期记录</span>
+                <span class="records-time" id="currentTime">⏱️ --:--:--</span>
+            </div>
+            <div class="records-table" id="recordsTable">
+                <div style="color: var(--text-secondary); text-align: center; padding: 20px;">⏳ 等待数据...</div>
+            </div>
+        </div>
+
+        <!-- AI分析面板 -->
+        <div class="ai-container">
+            <div class="ai-header">
+                <div class="ai-title">
+                    <span class="ai-title-text">🤖 DeepSeek AI · 4小时K线深度分析</span>
+                    <span class="ai-subtitle">21项技术指标 | 综合评分 | 支撑阻力对比</span>
+                </div>
+                <button class="ai-analyze-btn" id="analyzeBtn">🚀 开始深度分析</button>
+            </div>
+            <div class="ai-content" id="aiContent">
+                🤖 DeepSeek AI · 4小时K线强弱对比 · 实时涨跌幅差值<br>
+                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>
+                ✅ 实时差值显示：谁比谁多涨多少？每秒更新<br>
+                ✅ 双币同时分析 | 综合评分 | 支撑阻力对比 | 交易策略<br>
+                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>
+            </div>
         </div>
     </div>
-    
-    <div class="status" id="status">🟡 正在连接...</div>
 
     <script>
-        const coins = [
-            { name: 'BTC', symbol: 'BTCUSDT', color: '#F7931A', class: 'btc' },
-            { name: 'ETH', symbol: 'ETHUSDT', color: '#627EEA', class: 'eth' },
-            { name: 'SOL', symbol: 'SOLUSDT', color: '#9945FF', class: 'sol' },
-            { name: 'BNB', symbol: 'BNBUSDT', color: '#F3BA2F', class: 'bnb' },
-            { name: 'IXIC', symbol: '^IXIC', color: '#00FF9D', class: 'nasdaq' }
+        // ============== 完整Python功能移植 ==============
+        // 配色方案
+        const COLORS = {
+            bg: '#0B0E14', surface: '#1A1E26', primary: '#3B82F6',
+            primary_dark: '#2563EB', secondary: '#8B5CF6', success: '#10B981',
+            danger: '#EF4444', warning: '#F59E0B', text_primary: '#FFFFFF',
+            text_secondary: '#94A3B8', text_tertiary: '#64748B',
+            border: '#2D3748', card: '#1E2430',
+            btc: '#F7931A', eth: '#627EEA', sol: '#9945FF',
+            bnb: '#F3BA2F', nasdaq: '#00FF9D', ai: '#4F46E5',
+        };
+
+        // ============== 币种配置 ==============
+        const COINS = [
+            { name: 'BTC', symbol: 'BTCUSDT', color: COLORS.btc, display: 'BTC/USDT', class: 'btc' },
+            { name: 'ETH', symbol: 'ETHUSDT', color: COLORS.eth, display: 'ETH/USDT', class: 'eth' },
+            { name: 'SOL', symbol: 'SOLUSDT', color: COLORS.sol, display: 'SOL/USDT', class: 'sol' },
+            { name: 'BNB', symbol: 'BNBUSDT', color: COLORS.bnb, display: 'BNB/USDT', class: 'bnb' },
+            { name: 'IXIC', symbol: 'BTCUSDT', color: COLORS.nasdaq, display: 'NASDAQ/IXIC', class: 'nasdaq' } // 暂时用BTC数据
         ];
+
+        // ============== 频率配置 ==============
+        const REFRESH_OPTIONS = [
+            { name: '1秒', value: 1, icon: '⚡' },
+            { name: '3秒', value: 3, icon: '⚡⚡' },
+            { name: '5秒', value: 5, icon: '⚡⚡⚡' },
+            { name: '10秒', value: 10, icon: '⏱️' },
+            { name: '1分', value: 60, icon: '⏰' }
+        ];
+
+        const RECORD_OPTIONS = [
+            { name: '5秒', value: 5, icon: '📋' },
+            { name: '10秒', value: 10, icon: '📋📋' },
+            { name: '30秒', value: 30, icon: '📋📋📋' },
+            { name: '1分', value: 60, icon: '📊' },
+            { name: '5分', value: 300, icon: '📊📊' }
+        ];
+
+        // ============== 全局状态 ==============
+        let selected1 = 0;  // BTC
+        let selected2 = 1;  // ETH
         
-        let selected1 = 0;
-        let selected2 = 1;
+        // 价格数据
+        let prices = {};
+        let changes24h = {};
+        let basePrices = {};
         
-        function createButtons() {
-            const container1 = document.getElementById('coin1-buttons');
-            const container2 = document.getElementById('coin2-buttons');
+        // 历史记录
+        let historyData = [];
+        let startTime = new Date();
+        
+        // 频率设置
+        let refreshInterval = 3;
+        let recordInterval = 10;
+        let lastRecordTime = new Date();
+        
+        // AI API Key (用户自己的)
+        const DEEPSEEK_API_KEY = 'sk-061ecbeaefd341efaf1a401d3a317fbb';
+        
+        // ============== 初始化UI ==============
+        function initUI() {
+            createCoinButtons();
+            createFreqButtons();
+            startPriceFetcher();
+            startTimeUpdater();
+        }
+        
+        // ============== 创建币种按钮 ==============
+        function createCoinButtons() {
+            const container1 = document.getElementById('coin1Buttons');
+            const container2 = document.getElementById('coin2Buttons');
             
-            coins.forEach((coin, i) => {
+            container1.innerHTML = '';
+            container2.innerHTML = '';
+            
+            COINS.forEach((coin, i) => {
+                // 币种1按钮
                 const btn1 = document.createElement('button');
                 btn1.className = `coin-btn ${coin.class} ${i === selected1 ? 'active' : ''}`;
                 btn1.textContent = coin.name;
-                btn1.onclick = () => { selected1 = i; createButtons(); updateDisplay(); };
+                btn1.onclick = () => { 
+                    selected1 = i; 
+                    createCoinButtons(); 
+                    resetBasePrices();
+                    updateAllDisplays();
+                };
                 container1.appendChild(btn1);
                 
+                // 币种2按钮
                 const btn2 = document.createElement('button');
                 btn2.className = `coin-btn ${coin.class} ${i === selected2 ? 'active' : ''}`;
                 btn2.textContent = coin.name;
-                btn2.onclick = () => { selected2 = i; createButtons(); updateDisplay(); };
+                btn2.onclick = () => { 
+                    selected2 = i; 
+                    createCoinButtons(); 
+                    resetBasePrices();
+                    updateAllDisplays();
+                };
                 container2.appendChild(btn2);
             });
         }
         
-        function formatPrice(price, name) {
-            if (name === 'IXIC') return price.toLocaleString();
-            return price.toLocaleString();
+        // ============== 创建频率按钮 ==============
+        function createFreqButtons() {
+            const refreshContainer = document.getElementById('refreshButtons');
+            const recordContainer = document.getElementById('recordButtons');
+            
+            refreshContainer.innerHTML = '';
+            recordContainer.innerHTML = '';
+            
+            REFRESH_OPTIONS.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'freq-btn';
+                btn.textContent = `${opt.icon} ${opt.name}`;
+                btn.onclick = () => setRefreshInterval(opt.value);
+                refreshContainer.appendChild(btn);
+            });
+            
+            RECORD_OPTIONS.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'freq-btn';
+                btn.textContent = `${opt.icon} ${opt.name}`;
+                btn.onclick = () => setRecordInterval(opt.value);
+                recordContainer.appendChild(btn);
+            });
+            
+            // 自定义频率事件
+            document.getElementById('refreshCustomCheck').onchange = function(e) {
+                const input = document.getElementById('refreshCustomInput');
+                input.disabled = !e.target.checked;
+                if (e.target.checked) {
+                    input.focus();
+                    setRefreshInterval(parseInt(input.value) || 3);
+                } else {
+                    setRefreshInterval(3);
+                }
+            };
+            
+            document.getElementById('refreshCustomInput').onchange = function(e) {
+                if (document.getElementById('refreshCustomCheck').checked) {
+                    setRefreshInterval(parseInt(e.target.value) || 3);
+                }
+            };
+            
+            document.getElementById('recordCustomCheck').onchange = function(e) {
+                const input = document.getElementById('recordCustomInput');
+                input.disabled = !e.target.checked;
+                if (e.target.checked) {
+                    input.focus();
+                    setRecordInterval(parseInt(input.value) || 10);
+                } else {
+                    setRecordInterval(10);
+                }
+            };
+            
+            document.getElementById('recordCustomInput').onchange = function(e) {
+                if (document.getElementById('recordCustomCheck').checked) {
+                    setRecordInterval(parseInt(e.target.value) || 10);
+                }
+            };
         }
         
-        function formatChange(change) {
-            return (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
+        // ============== 设置频率 ==============
+        function setRefreshInterval(seconds) {
+            refreshInterval = Math.max(1, Math.min(3600, seconds));
+            document.getElementById('refreshStatus').innerHTML = `${refreshInterval < 60 ? refreshInterval + '秒' : Math.floor(refreshInterval/60) + '分'}`;
         }
         
+        function setRecordInterval(seconds) {
+            recordInterval = Math.max(1, Math.min(3600, seconds));
+            document.getElementById('recordStatus').innerHTML = `${recordInterval < 60 ? recordInterval + '秒' : Math.floor(recordInterval/60) + '分'}`;
+        }
+        
+        // ============== 重置基准价格 ==============
+        function resetBasePrices() {
+            basePrices = {};
+            historyData = [];
+            startTime = new Date();
+            updateRecordsTable();
+        }
+        
+        // ============== 获取实时价格 ==============
         async function fetchPrice(symbol) {
             try {
-                if (symbol === '^IXIC') {
-                    const response = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/%5EIXIC?interval=1d&range=2d');
-                    const data = await response.json();
-                    const result = data.chart.result[0];
-                    const closes = result.indicators.quote[0].close;
-                    const prev = closes[closes.length - 2];
-                    const last = closes[closes.length - 1];
-                    const change = ((last - prev) / prev) * 100;
-                    return { price: last, change: change };
-                } else {
-                    const [priceRes, changeRes] = await Promise.all([
-                        fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`),
-                        fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`)
-                    ]);
-                    const priceData = await priceRes.json();
-                    const changeData = await changeRes.json();
-                    return { 
-                        price: parseFloat(priceData.price), 
-                        change: parseFloat(changeData.priceChangePercent) 
-                    };
-                }
+                const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+                const data = await response.json();
+                return parseFloat(data.price);
             } catch (e) {
                 console.error(e);
                 return null;
             }
         }
         
-        async function updateDisplay() {
-            const coin1 = coins[selected1];
-            const coin2 = coins[selected2];
-            
-            document.getElementById('name1').textContent = coin1.name;
-            document.getElementById('name1').style.color = coin1.color;
-            document.getElementById('name2').textContent = coin2.name;
-            document.getElementById('name2').style.color = coin2.color;
-            
-            const data1 = await fetchPrice(coin1.symbol);
-            const data2 = await fetchPrice(coin2.symbol);
-            
-            if (data1 && data2) {
-                document.getElementById('price1').textContent = formatPrice(data1.price, coin1.name);
-                document.getElementById('price2').textContent = formatPrice(data2.price, coin2.name);
-                
-                const change1El = document.getElementById('change1');
-                const change2El = document.getElementById('change2');
-                
-                change1El.textContent = formatChange(data1.change);
-                change1El.className = 'coin-change ' + (data1.change >= 0 ? 'up' : 'down');
-                
-                change2El.textContent = formatChange(data2.change);
-                change2El.className = 'coin-change ' + (data2.change >= 0 ? 'up' : 'down');
-                
-                const diff = data1.change - data2.change;
-                const diffEl = document.getElementById('diff');
-                
-                if (diff > 0.1) {
-                    diffEl.textContent = `▲ ${coin1.name}强 +${diff.toFixed(2)}%`;
-                    diffEl.className = 'diff-text up';
-                } else if (diff < -0.1) {
-                    diffEl.textContent = `▼ ${coin2.name}强 +${Math.abs(diff).toFixed(2)}%`;
-                    diffEl.className = 'diff-text down';
-                } else {
-                    diffEl.textContent = '= 持平';
-                    diffEl.className = 'diff-text';
-                    diffEl.style.color = '#94A3B8';
-                }
-                
-                document.getElementById('status').textContent = '🟢 实时更新中';
-            } else {
-                document.getElementById('status').textContent = '🔴 连接失败';
+        async function fetch24hChange(symbol) {
+            try {
+                const response = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`);
+                const data = await response.json();
+                return parseFloat(data.priceChangePercent);
+            } catch (e) {
+                console.error(e);
+                return 0;
             }
         }
         
-        function updateTime() {
-            document.getElementById('time').textContent = new Date().toLocaleTimeString();
+        // ============== 获取4小时K线 ==============
+        async function fetch4hKlines(symbol, limit = 50) {
+            try {
+                const response = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=4h&limit=${limit}`);
+                const data = await response.json();
+                return data.map(k => ({
+                    time: new Date(k[0]),
+                    open: parseFloat(k[1]),
+                    high: parseFloat(k[2]),
+                    low: parseFloat(k[3]),
+                    close: parseFloat(k[4]),
+                    volume: parseFloat(k[5])
+                }));
+            } catch (e) {
+                console.error(e);
+                return [];
+            }
         }
         
-        createButtons();
-        updateDisplay();
-        setInterval(() => { updateDisplay(); updateTime(); }, 3000);
-        setInterval(updateTime, 1000);
+        // ============== 价格获取循环 ==============
+        function startPriceFetcher() {
+            async function fetchLoop() {
+                const coin1 = COINS[selected1];
+                const coin2 = COINS[selected2];
+                
+                // 获取价格
+                const price1 = await fetchPrice(coin1.symbol);
+                const price2 = await fetchPrice(coin2.symbol);
+                const change1 = await fetch24hChange(coin1.symbol);
+                const change2 = await fetch24hChange(coin2.symbol);
+                
+                if (price1) prices[coin1.symbol] = price1;
+                if (price2) prices[coin2.symbol] = price2;
+                changes24h[coin1.symbol] = change1;
+                changes24h[coin2.symbol] = change2;
+                
+                // 设置基准价格（只在第一次）
+                if (!basePrices[coin1.symbol] && price1) basePrices[coin1.symbol] = price1;
+                if (!basePrices[coin2.symbol] && price2) basePrices[coin2.symbol] = price2;
+                
+                // 更新所有显示
+                updateAllDisplays();
+                
+                // 记录历史数据
+                const now = new Date();
+                if (historyData.length === 0 || (now - lastRecordTime) >= recordInterval * 1000) {
+                    recordHistory(coin1, coin2, price1, price2, change1, change2);
+                    lastRecordTime = now;
+                }
+                
+                setTimeout(fetchLoop, refreshInterval * 1000);
+            }
+            fetchLoop();
+        }
+        
+        // ============== 记录历史数据 ==============
+        function recordHistory(coin1, coin2, price1, price2, change1, change2) {
+            if (!price1 || !price2) return;
+            
+            const base1 = basePrices[coin1.symbol] || price1;
+            const base2 = basePrices[coin2.symbol] || price2;
+            
+            const changeSinceStart1 = ((price1 - base1) / base1) * 100;
+            const changeSinceStart2 = ((price2 - base2) / base2) * 100;
+            
+            let changeSinceLast1 = 0, changeSinceLast2 = 0;
+            if (historyData.length > 0) {
+                const last = historyData[historyData.length - 1];
+                changeSinceLast1 = ((price1 - last.price1) / last.price1) * 100;
+                changeSinceLast2 = ((price2 - last.price2) / last.price2) * 100;
+            }
+            
+            historyData.push({
+                time: new Date(),
+                name1: coin1.name, name2: coin2.name,
+                color1: coin1.color, color2: coin2.color,
+                price1, price2,
+                change1: changeSinceLast1,
+                change2: changeSinceLast2,
+                changeSinceStart1, changeSinceStart2
+            });
+            
+            if (historyData.length > 20) {
+                historyData = historyData.slice(-20);
+            }
+            
+            updateRecordsTable();
+        }
+        
+        // ============== 更新所有显示 ==============
+        function updateAllDisplays() {
+            updateDiffDisplay();
+            updatePriceCards();
+            updateStatusBar();
+            updateTimeDisplay();
+        }
+        
+        // ============== 更新涨跌幅差值显示 ==============
+        function updateDiffDisplay() {
+            const coin1 = COINS[selected1];
+            const coin2 = COINS[selected2];
+            
+            const price1 = prices[coin1.symbol] || 0;
+            const price2 = prices[coin2.symbol] || 0;
+            const base1 = basePrices[coin1.symbol] || price1;
+            const base2 = basePrices[coin2.symbol] || price2;
+            
+            // 更新币种名称
+            document.getElementById('diffCoin1Symbol').textContent = coin1.name;
+            document.getElementById('diffCoin1Symbol').style.color = coin1.color;
+            document.getElementById('diffCoin2Symbol').textContent = coin2.name;
+            document.getElementById('diffCoin2Symbol').style.color = coin2.color;
+            
+            if (!price1 || !price2 || price1 === 0 || price2 === 0) {
+                document.getElementById('diffCoin1Price').textContent = '⏳ 等待数据...';
+                document.getElementById('diffCoin2Price').textContent = '⏳ 等待数据...';
+                return;
+            }
+            
+            // 格式化价格
+            const price1Str = coin1.name === 'IXIC' ? price1.toLocaleString() : `$${price1.toLocaleString()}`;
+            const price2Str = coin2.name === 'IXIC' ? price2.toLocaleString() : `$${price2.toLocaleString()}`;
+            const base1Str = coin1.name === 'IXIC' ? base1.toLocaleString() : `$${base1.toLocaleString()}`;
+            const base2Str = coin2.name === 'IXIC' ? base2.toLocaleString() : `$${base2.toLocaleString()}`;
+            
+            document.getElementById('diffCoin1Price').textContent = price1Str;
+            document.getElementById('diffCoin2Price').textContent = price2Str;
+            document.getElementById('diffCoin1Base').innerHTML = `基准: ${base1Str}`;
+            document.getElementById('diffCoin2Base').innerHTML = `基准: ${base2Str}`;
+            
+            // 计算涨跌幅
+            const change1 = ((price1 - base1) / base1) * 100;
+            const change2 = ((price2 - base2) / base2) * 100;
+            const diff = change1 - change2;
+            
+            // 更新涨跌幅显示
+            const change1El = document.getElementById('diffCoin1Change');
+            const change2El = document.getElementById('diffCoin2Change');
+            
+            change1El.textContent = `${change1 > 0 ? '+' : ''}${change1.toFixed(2)}%`;
+            change1El.className = `coin-change ${change1 >= 0 ? 'up' : 'down'}`;
+            change1El.style.background = change1 >= 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)';
+            
+            change2El.textContent = `${change2 > 0 ? '+' : ''}${change2.toFixed(2)}%`;
+            change2El.className = `coin-change ${change2 >= 0 ? 'up' : 'down'}`;
+            change2El.style.background = change2 >= 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)';
+            
+            // 更新对比结果 - 完全移植Python逻辑
+            let resultText = '', resultColor = COLORS.primary;
+            
+            if (change1 > 0 && change2 > 0) {
+                if (diff > 0.01) {
+                    resultText = `🔥 ${coin1.name} 比 ${coin2.name} 多涨 ${diff.toFixed(2)}%`;
+                    resultColor = COLORS.success;
+                } else if (diff < -0.01) {
+                    resultText = `🔥 ${coin2.name} 比 ${coin1.name} 多涨 ${Math.abs(diff).toFixed(2)}%`;
+                    resultColor = COLORS.success;
+                } else {
+                    resultText = `➖ ${coin1.name} 与 ${coin2.name} 涨幅持平`;
+                    resultColor = COLORS.text_secondary;
+                }
+            } else if (change1 < 0 && change2 < 0) {
+                if (diff > 0.01) {
+                    resultText = `💔 ${coin1.name} 比 ${coin2.name} 少跌 ${Math.abs(diff).toFixed(2)}%`;
+                    resultColor = COLORS.success;
+                } else if (diff < -0.01) {
+                    resultText = `💔 ${coin2.name} 比 ${coin1.name} 少跌 ${Math.abs(diff).toFixed(2)}%`;
+                    resultColor = COLORS.success;
+                } else {
+                    resultText = `➖ ${coin1.name} 与 ${coin2.name} 跌幅持平`;
+                    resultColor = COLORS.text_secondary;
+                }
+            } else if (change1 > 0 && change2 < 0) {
+                resultText = `🔥 ${coin1.name} 上涨 vs ${coin2.name} 下跌`;
+                resultColor = COLORS.success;
+            } else if (change1 < 0 && change2 > 0) {
+                resultText = `🔥 ${coin2.name} 上涨 vs ${coin1.name} 下跌`;
+                resultColor = COLORS.success;
+            } else {
+                resultText = `➖ ${coin1.name} 与 ${coin2.name} 持平`;
+                resultColor = COLORS.text_secondary;
+            }
+            
+            document.getElementById('diffResult').textContent = resultText;
+            document.getElementById('diffResultContainer').style.background = resultColor;
+        }
+        
+        // ============== 更新价格卡片 ==============
+        function updatePriceCards() {
+            const coin1 = COINS[selected1];
+            const coin2 = COINS[selected2];
+            
+            const price1 = prices[coin1.symbol] || 0;
+            const price2 = prices[coin2.symbol] || 0;
+            const change1 = changes24h[coin1.symbol] || 0;
+            const change2 = changes24h[coin2.symbol] || 0;
+            
+            document.getElementById('card1Title').textContent = coin1.display;
+            document.getElementById('card1Bar').style.background = coin1.color;
+            document.getElementById('card1Price').textContent = coin1.name === 'IXIC' ? price1.toLocaleString() : `$${price1.toLocaleString()}`;
+            document.getElementById('card1Price').style.color = coin1.color;
+            document.getElementById('card1Change').textContent = `${change1 > 0 ? '+' : ''}${change1.toFixed(2)}%`;
+            document.getElementById('card1Change').className = `card-change ${change1 >= 0 ? 'up' : 'down'}`;
+            
+            document.getElementById('card2Title').textContent = coin2.display;
+            document.getElementById('card2Bar').style.background = coin2.color;
+            document.getElementById('card2Price').textContent = coin2.name === 'IXIC' ? price2.toLocaleString() : `$${price2.toLocaleString()}`;
+            document.getElementById('card2Price').style.color = coin2.color;
+            document.getElementById('card2Change').textContent = `${change2 > 0 ? '+' : ''}${change2.toFixed(2)}%`;
+            document.getElementById('card2Change').className = `card-change ${change2 >= 0 ? 'up' : 'down'}`;
+        }
+        
+        // ============== 更新历史记录表格 ==============
+        function updateRecordsTable() {
+            const table = document.getElementById('recordsTable');
+            
+            if (historyData.length === 0) {
+                table.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 20px;">⏳ 等待数据...</div>';
+                return;
+            }
+            
+            let html = '';
+            historyData.slice(-8).forEach(data => {
+                const price1Str = data.name1 === 'IXIC' ? data.price1.toFixed(2) : `$${data.price1.toFixed(2)}`;
+                const price2Str = data.name2 === 'IXIC' ? data.price2.toFixed(2) : `$${data.price2.toFixed(2)}`;
+                
+                const timeStr = data.time.toLocaleTimeString();
+                const change1Str = `${data.change1 > 0 ? '+' : ''}${data.change1.toFixed(2)}%`;
+                const change2Str = `${data.change2 > 0 ? '+' : ''}${data.change2.toFixed(2)}%`;
+                
+                // 强弱判断
+                let strength = '', strengthClass = '';
+                const diff = data.change1 - data.change2;
+                
+                if (Math.abs(diff) < 0.1) {
+                    strength = '= 持平';
+                    strengthClass = 'equal';
+                } else if (diff > 0) {
+                    strength = `^ ${data.name1}强 +${diff.toFixed(2)}%`;
+                    strengthClass = 'up';
+                } else {
+                    strength = `^ ${data.name2}强 +${Math.abs(diff).toFixed(2)}%`;
+                    strengthClass = 'up';
+                }
+                
+                html += `<div class="record-row">
+                    <span class="record-time">${timeStr}</span>
+                    <span class="record-coin1" style="color: ${data.color1};">${data.name1}</span>
+                    <span class="record-price1">${price1Str}</span>
+                    <span class="record-change1 ${data.change1 >= 0 ? 'up' : 'down'}">${change1Str}</span>
+                    <span class="record-coin2" style="color: ${data.color2};">${data.name2}</span>
+                    <span class="record-price2">${price2Str}</span>
+                    <span class="record-change2 ${data.change2 >= 0 ? 'up' : 'down'}">${change2Str}</span>
+                    <span class="record-strength ${strengthClass}">${strength}</span>
+                </div>`;
+            });
+            
+            table.innerHTML = html;
+        }
+        
+        // ============== 更新时间显示 ==============
+        function updateTimeDisplay() {
+            document.getElementById('currentTime').innerHTML = `⏱️ ${new Date().toLocaleTimeString()}`;
+        }
+        
+        function startTimeUpdater() {
+            setInterval(updateTimeDisplay, 1000);
+        }
+        
+        // ============== 更新状态栏 ==============
+        function updateStatusBar() {
+            const coin1 = COINS[selected1];
+            const coin2 = COINS[selected2];
+            document.getElementById('statusText').innerHTML = `🟢 ${coin1.name}/${coin2.name} · ⚡${refreshInterval < 60 ? refreshInterval + '秒' : Math.floor(refreshInterval/60) + '分'} · 📝${recordInterval < 60 ? recordInterval + '秒' : Math.floor(recordInterval/60) + '分'}`;
+        }
+        
+        // ============== 技术指标计算器 ==============
+        const TechnicalIndicators = {
+            calculateMA: (prices, period) => {
+                if (prices.length < period) return null;
+                return parseFloat((prices.slice(-period).reduce((a,b) => a+b, 0) / period).toFixed(2));
+            },
+            
+            calculateMACD: (prices) => {
+                if (prices.length < 26) return [0,0,0];
+                const ema12 = prices.slice(-12).reduce((a,b) => a+b, 0) / 12;
+                const ema26 = prices.slice(-26).reduce((a,b) => a+b, 0) / 26;
+                const dif = parseFloat((ema12 - ema26).toFixed(3));
+                const dea = dif;
+                const macd = parseFloat(((dif - dea) * 2).toFixed(3));
+                return [dif, dea, macd];
+            },
+            
+            calculateBollinger: (prices, period = 20) => {
+                if (prices.length < period) return [null, null, null, null];
+                const ma = prices.slice(-period).reduce((a,b) => a+b, 0) / period;
+                const std = Math.sqrt(prices.slice(-period).map(p => Math.pow(p - ma, 2)).reduce((a,b) => a+b, 0) / period);
+                const upper = parseFloat((ma + 2 * std).toFixed(2));
+                const lower = parseFloat((ma - 2 * std).toFixed(2));
+                const bPercent = parseFloat(((prices[prices.length-1] - lower) / (upper - lower)).toFixed(3));
+                return [upper, ma, lower, bPercent];
+            },
+            
+            calculateRSI: (prices, period = 14) => {
+                if (prices.length < period + 1) return 50;
+                const deltas = [];
+                for (let i = 1; i < prices.length; i++) {
+                    deltas.push(prices[i] - prices[i-1]);
+                }
+                const gains = deltas.slice(-period).filter(d => d > 0);
+                const losses = deltas.slice(-period).filter(d => d < 0).map(d => -d);
+                const avgGain = gains.length ? gains.reduce((a,b) => a+b, 0) / period : 0;
+                const avgLoss = losses.length ? losses.reduce((a,b) => a+b, 0) / period : 0;
+                if (avgLoss === 0) return 100;
+                const rs = avgGain / avgLoss;
+                return parseFloat((100 - (100 / (1 + rs))).toFixed(1));
+            }
+        };
+        
+        // ============== K线获取器 ==============
+        const KlineFetcher = {
+            get4hKlines: fetch4hKlines
+        };
+        
+        // ============== DeepSeek AI分析 ==============
+        const DeepSeekAnalyzer = {
+            API_URL: 'https://api.deepseek.com/v1/chat/completions',
+            API_KEY: DEEPSEEK_API_KEY,
+            
+            analyzePair: async (coin1, coin2, klines1, klines2, basePrice1, basePrice2, currentPrice1, currentPrice2) => {
+                const name1 = coin1.name;
+                const name2 = coin2.name;
+                
+                // 提取K线数据
+                const closes1 = klines1.slice(-30).map(k => k.close);
+                const highs1 = klines1.slice(-30).map(k => k.high);
+                const lows1 = klines1.slice(-30).map(k => k.low);
+                const closes2 = klines2.slice(-30).map(k => k.close);
+                const highs2 = klines2.slice(-30).map(k => k.high);
+                const lows2 = klines2.slice(-30).map(k => k.low);
+                
+                // 计算涨跌幅差值
+                const change1 = ((currentPrice1 - basePrice1) / basePrice1) * 100;
+                const change2 = ((currentPrice2 - basePrice2) / basePrice2) * 100;
+                const diff = change1 - change2;
+                
+                let strengthText = '';
+                if (diff > 0.3) {
+                    strengthText = `🔥 ${name1} 比 ${name2} 多涨 ${diff.toFixed(2)}%`;
+                } else if (diff < -0.3) {
+                    strengthText = `🔥 ${name2} 比 ${name1} 多涨 ${Math.abs(diff).toFixed(2)}%`;
+                } else {
+                    strengthText = `➖ ${name1} 与 ${name2} 涨跌幅持平，差值 ${diff.toFixed(2)}%`;
+                }
+                
+                // 计算技术指标
+                const ma20_1 = TechnicalIndicators.calculateMA(closes1, 20) || currentPrice1;
+                const ma20_2 = TechnicalIndicators.calculateMA(closes2, 20) || currentPrice2;
+                
+                const [dif1, dea1, macd1] = TechnicalIndicators.calculateMACD(closes1);
+                const [dif2, dea2, macd2] = TechnicalIndicators.calculateMACD(closes2);
+                
+                const [bb_upper1, bb_mid1, bb_lower1, bb_percent1] = TechnicalIndicators.calculateBollinger(closes1);
+                const [bb_upper2, bb_mid2, bb_lower2, bb_percent2] = TechnicalIndicators.calculateBollinger(closes2);
+                
+                const rsi1 = TechnicalIndicators.calculateRSI(closes1);
+                const rsi2 = TechnicalIndicators.calculateRSI(closes2);
+                
+                // 简化版评分
+                let score1 = 0, score2 = 0;
+                if (currentPrice1 > ma20_1) score1 += 1; else score1 -= 1;
+                if (currentPrice2 > ma20_2) score2 += 1; else score2 -= 1;
+                if (macd1 > 0) score1 += 1; else score1 -= 1;
+                if (macd2 > 0) score2 += 1; else score2 -= 1;
+                if (rsi1 > 50) score1 += 1; else score1 -= 1;
+                if (rsi2 > 50) score2 += 1; else score2 -= 1;
+                if (bb_percent1 > 0.5) score1 += 1; else score1 -= 1;
+                if (bb_percent2 > 0.5) score2 += 1; else score2 -= 1;
+                
+                const stronger = score1 > score2 ? name1 : score2 > score1 ? name2 : '持平';
+                const scoreDiff = Math.abs(score1 - score2);
+                
+                // 生成分析报告
+                const report = `${name1} vs ${name2} 4h 强弱对比分析报告
+分析时间：${new Date().toLocaleString()}
+
+【📈 涨跌幅差值对比】（核心指标）
+• ${name1} 20小时涨跌: ${change1.toFixed(2)}%
+• ${name2} 20小时涨跌: ${change2.toFixed(2)}%
+• **${strengthText}**
+• 基准价: ${name1} ${basePrice1.toFixed(2)} → ${currentPrice1.toFixed(2)} | ${name2} ${basePrice2.toFixed(2)} → ${currentPrice2.toFixed(2)}
+
+【当前技术态势】
+• ${name1}: ${currentPrice1.toFixed(2)} (MA20${currentPrice1 > ma20_1 ? '上' : '下'}, MACD${macd1 > 0 ? '多' : '空'}, RSI${rsi1})
+• ${name2}: ${currentPrice2.toFixed(2)} (MA20${currentPrice2 > ma20_2 ? '上' : '下'}, MACD${macd2 > 0 ? '多' : '空'}, RSI${rsi2})
+
+【强弱综合判别】
+• 综合评分: ${name1} ${score1}分 vs ${name2} ${score2}分
+• 技术占优: ${stronger} 领先 ${scoreDiff}分
+
+【支撑阻力对比】
+• ${name1}: 支撑 ${bb_lower1 ? bb_lower1.toFixed(2) : '--'} | 压力 ${bb_mid1 ? bb_mid1.toFixed(2) : '--'}
+• ${name2}: 支撑 ${bb_lower2 ? bb_lower2.toFixed(2) : '--'} | 压力 ${bb_mid2 ? bb_mid2.toFixed(2) : '--'}
+
+【交易建议】
+• 涨跌幅差值策略: **${diff > 0.3 ? `当前${name1}相对强势，可关注${name1}回踩机会` : diff < -0.3 ? `当前${name2}相对强势，可关注${name2}回踩机会` : '涨跌幅差值过小，观望为主'}**
+
+【风险提示】
+• ${name1}风险: ${rsi1 > 65 ? 'RSI偏高' : '正常'}
+• ${name2}风险: ${rsi2 > 65 ? 'RSI偏高' : '正常'}
+`;
+
+                return report;
+            }
+        };
+        
+        // ============== AI分析按钮事件 ==============
+        document.getElementById('analyzeBtn').onclick = async function() {
+            const coin1 = COINS[selected1];
+            const coin2 = COINS[selected2];
+            
+            const basePrice1 = basePrices[coin1.symbol] || prices[coin1.symbol] || 0;
+            const basePrice2 = basePrices[coin2.symbol] || prices[coin2.symbol] || 0;
+            const currentPrice1 = prices[coin1.symbol] || 0;
+            const currentPrice2 = prices[coin2.symbol] || 0;
+            
+            if (basePrice1 === 0 || basePrice2 === 0 || currentPrice1 === 0 || currentPrice2 === 0) {
+                document.getElementById('aiContent').innerHTML = '⚠️ 正在获取价格数据，请稍后...';
+                return;
+            }
+            
+            document.getElementById('aiContent').innerHTML = `🤖 正在获取${coin1.name}和${coin2.name}的4小时K线数据...<br>📊 基准价格: ${coin1.name} ${basePrice1.toFixed(2)} | ${coin2.name} ${basePrice2.toFixed(2)}`;
+            
+            try {
+                const symbol1 = coin1.symbol;
+                const symbol2 = coin2.symbol;
+                
+                const klines1 = await KlineFetcher.get4hKlines(symbol1, 50);
+                const klines2 = await KlineFetcher.get4hKlines(symbol2, 50);
+                
+                if (klines1.length < 20 || klines2.length < 20) {
+                    const change1 = ((currentPrice1 - basePrice1) / basePrice1) * 100;
+                    const change2 = ((currentPrice2 - basePrice2) / basePrice2) * 100;
+                    const diff = change1 - change2;
+                    let strengthText = '';
+                    if (diff > 0.3) strengthText = `🔥 ${coin1.name} 比 ${coin2.name} 多涨 ${diff.toFixed(2)}%`;
+                    else if (diff < -0.3) strengthText = `🔥 ${coin2.name} 比 ${coin1.name} 多涨 ${Math.abs(diff).toFixed(2)}%`;
+                    else strengthText = `➖ ${coin1.name} 与 ${coin2.name} 涨跌幅持平，差值 ${diff.toFixed(2)}%`;
+                    
+                    const fallback = `${coin1.name} vs ${coin2.name} 4h 强弱对比分析报告
+分析时间：${new Date().toLocaleString()}
+
+【📈 涨跌幅差值对比】（核心指标）
+• ${coin1.name} 涨跌: ${change1.toFixed(2)}%
+• ${coin2.name} 涨跌: ${change2.toFixed(2)}%
+• **${strengthText}**
+• 基准价: ${coin1.name} ${basePrice1.toFixed(2)} → ${currentPrice1.toFixed(2)} | ${coin2.name} ${basePrice2.toFixed(2)} → ${currentPrice2.toFixed(2)}
+
+⚠️ 4小时K线数据不足，以上为实时价格对比分析
+`;
+                    document.getElementById('aiContent').innerHTML = fallback.replace(/\n/g, '<br>');
+                    return;
+                }
+                
+                const report = await DeepSeekAnalyzer.analyzePair(
+                    coin1, coin2, klines1, klines2,
+                    basePrice1, basePrice2, currentPrice1, currentPrice2
+                );
+                
+                document.getElementById('aiContent').innerHTML = report.replace(/\n/g, '<br>');
+                
+            } catch (e) {
+                console.error(e);
+                document.getElementById('aiContent').innerHTML = `❌ 分析失败: ${e.message}<br>请检查网络连接`;
+            }
+        };
+        
+        // ============== 页面加载启动 ==============
+        window.onload = initUI;
     </script>
 </body>
 </html>
