@@ -538,6 +538,18 @@
             cursor: pointer;
         }
 
+        .ai-btn.orange {
+            background: #F59E0B;
+        }
+
+        .ai-btn.orange:hover {
+            background: #D97706;
+        }
+
+        .ai-btn:hover {
+            background: #4338CA;
+        }
+
         .ai-content {
             background: #1E2430;
             border-radius: 16px;
@@ -695,7 +707,10 @@
                     <span class="ai-icon">🤖</span>
                     <span class="ai-title-text">DeepSeek AI · 技术分析</span>
                 </div>
-                <button class="ai-btn" id="analyzeBtn">🚀 深度分析</button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="ai-btn orange" id="kline6hSimpleBtn">📊 6H涨跌幅</button>
+                    <button class="ai-btn" id="analyzeBtn">🚀 深度分析</button>
+                </div>
             </div>
             <div class="ai-content" id="aiContent">
 🤖 DeepSeek AI · 4小时K线强弱对比<br>
@@ -1303,7 +1318,7 @@
                             { role: 'system', content: '你是一个精通加密货币技术分析和量化交易的专家。你的分析必须有数据支撑，给出具体价位和可执行的建议。' },
                             { role: 'user', content: prompt }
                         ],
-                        temperature: 0.3,       // 低温度保证分析一致性
+                        temperature: 0.3,
                         max_tokens: 1200,
                         top_p: 0.9
                     })
@@ -1321,8 +1336,145 @@
             }
         }
 
-        // 绑定AI分析按钮事件
+        // ========== 新增：6小时涨跌幅简洁对比 ==========
+        async function analyze6hSimple() {
+            const aiContent = document.getElementById('aiContent');
+            
+            if (selectedCoins.length < 2) {
+                aiContent.innerHTML = '请先选择至少两个币种';
+                return;
+            }
+            
+            aiContent.innerHTML = '📊 正在获取6小时涨跌幅数据...';
+            
+            let results = [];
+            
+            // 逐个获取每个币种的6小时涨跌幅
+            for (let index of selectedCoins) {
+                const coin = COINS[index];
+                
+                try {
+                    let change6h = null;
+                    
+                    if (coin.symbol === 'nasdaq') {
+                        // 纳斯达克：使用基准价近似（从启动至今）
+                        const currentPrice = getCoinPrice(coin);
+                        const basePrice = basePrices[coin.symbol];
+                        
+                        if (currentPrice && basePrice) {
+                            change6h = ((currentPrice - basePrice) / basePrice) * 100;
+                        } else {
+                            results.push({
+                                name: coin.name,
+                                change: '数据不足',
+                                color: coin.color
+                            });
+                            continue;
+                        }
+                    } else {
+                        // 加密货币：使用币安6小时K线
+                        const url = `https://api.binance.com/api/v3/klines?symbol=${coin.symbol}&interval=6h&limit=1`;
+                        const response = await fetch(url);
+                        
+                        if (!response.ok) {
+                            results.push({
+                                name: coin.name,
+                                change: '获取失败',
+                                color: coin.color
+                            });
+                            continue;
+                        }
+                        
+                        const data = await response.json();
+                        
+                        if (data && data.length > 0) {
+                            const openPrice = parseFloat(data[0][1]);  // 开盘价
+                            const closePrice = parseFloat(data[0][4]); // 收盘价
+                            change6h = ((closePrice - openPrice) / openPrice) * 100;
+                        } else {
+                            results.push({
+                                name: coin.name,
+                                change: '无数据',
+                                color: coin.color
+                            });
+                            continue;
+                        }
+                    }
+                    
+                    results.push({
+                        name: coin.name,
+                        change: change6h,
+                        color: coin.color
+                    });
+                    
+                } catch (error) {
+                    console.error(`获取${coin.name}6小时数据失败:`, error);
+                    results.push({
+                        name: coin.name,
+                        change: '错误',
+                        color: coin.color
+                    });
+                }
+            }
+            
+            // 生成简洁的文本报告
+            let report = '📈 **最近6小时涨跌幅对比**\n';
+            report += '━━━━━━━━━━━━━━━━━━━━\n\n';
+            
+            // 分离有效和无效数据
+            const validResults = results.filter(r => typeof r.change === 'number');
+            const invalidResults = results.filter(r => typeof r.change !== 'number');
+            
+            // 按涨跌幅排序（从高到低）
+            validResults.sort((a, b) => b.change - a.change);
+            
+            // 输出每个币种的涨跌幅
+            validResults.forEach(item => {
+                const changeStr = item.change > 0 ? `+${item.change.toFixed(2)}%` : `${item.change.toFixed(2)}%`;
+                report += `• **${item.name}**: ${changeStr}\n`;
+            });
+            
+            // 输出无效数据提示
+            invalidResults.forEach(item => {
+                report += `❌ **${item.name}**: ${item.change}\n`;
+            });
+            
+            report += '\n';
+            
+            // 两两对比（只有至少两个有效数据时才进行）
+            if (validResults.length >= 2) {
+                report += '**强弱对比**\n';
+                for (let i = 0; i < validResults.length - 1; i++) {
+                    for (let j = i + 1; j < validResults.length; j++) {
+                        const diff = (validResults[i].change - validResults[j].change).toFixed(2);
+                        report += `• ${validResults[i].name} vs ${validResults[j].name}: `;
+                        if (diff > 0) {
+                            report += `<span class="up">${validResults[i].name} 多涨 ${diff}%</span>\n`;
+                        } else if (diff < 0) {
+                            const absDiff = Math.abs(parseFloat(diff)).toFixed(2);
+                            report += `<span class="up">${validResults[j].name} 多涨 ${absDiff}%</span>\n`;
+                        } else {
+                            report += `<span class="equal">涨幅持平</span>\n`;
+                        }
+                    }
+                }
+            }
+            
+            // 格式化输出（添加颜色）
+            let formattedReport = report
+                .replace(/(比特币|BTC|eth|ETH|sol|SOL|bnb|BNB|ixic|IXIC|纳斯达克)/g, match => {
+                    const coin = results.find(r => r.name === match.toUpperCase());
+                    if (coin && coin.color) return `<span style="color:${coin.color}; font-weight:bold;">${match}</span>`;
+                    return match;
+                })
+                .replace(/(多涨)/g, '<span class="up">$1</span>');
+            
+            aiContent.innerHTML = formattedReport.replace(/\n/g, '<br>');
+        }
+
+        // 绑定按钮事件
         document.getElementById('analyzeBtn').onclick = analyzeAll;
+        document.getElementById('kline6hSimpleBtn').onclick = analyze6hSimple;
 
         window.onload = init;
     </script>
