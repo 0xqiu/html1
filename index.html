@@ -542,12 +542,20 @@
             background: #F59E0B;
         }
 
+        .ai-btn.purple {
+            background: #9945FF;
+        }
+
         .ai-btn.orange:hover {
             background: #D97706;
         }
 
         .ai-btn:hover {
             background: #4338CA;
+        }
+
+        .ai-btn.purple:hover {
+            background: #7A3BCC;
         }
 
         .ai-content {
@@ -710,6 +718,7 @@
                 <div style="display: flex; gap: 8px;">
                     <button class="ai-btn orange" id="kline6hSimpleBtn">📊 6H涨跌幅</button>
                     <button class="ai-btn" id="analyzeBtn">🚀 深度分析</button>
+                    <button class="ai-btn purple" id="liqMapBtn">📉 清算地图</button>
                 </div>
             </div>
             <div class="ai-content" id="aiContent">
@@ -996,17 +1005,23 @@
             if (timeSinceLast < nasdaqInterval) return null;
 
             try {
-                const proxyUrl = 'https://api.allorigins.win/raw?url=';
+                const proxyUrl = 'https://corsproxy.io/?';  // 修改为可靠代理
                 const targetUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EIXIC';
                 const response = await fetch(proxyUrl + encodeURIComponent(targetUrl));
-                if (!response.ok) return null;
+                if (!response.ok) {
+                    console.error('纳斯达克代理失败:', response.status);
+                    return null;
+                }
                 const data = await response.json();
                 if (data.chart?.result?.[0]?.meta?.regularMarketPrice) {
                     lastNasdaqUpdate = now;
                     return data.chart.result[0].meta.regularMarketPrice;
+                } else {
+                    console.error('纳斯达克数据格式无效');
+                    return null;
                 }
-                return null;
             } catch (error) {
+                console.error('纳斯达克获取错误:', error);
                 return null;
             }
         }
@@ -1047,6 +1062,8 @@
                         }
                     }
                     renderVS();
+                } else if (Date.now() - lastNasdaqUpdate > 300000) {  // 5分钟无更新，显示警告
+                    document.getElementById('conclusionText').textContent = '⚠️ 纳斯达克数据更新延迟，可能市场休市';
                 }
                 nasdaqLoopTimer = setTimeout(nasdaqLoop, nasdaqInterval * 1000);
             }
@@ -1493,9 +1510,102 @@
             aiContent.innerHTML = formattedReport.replace(/\n/g, '<br>');
         }
 
+        // ========== 新功能：清算地图分析 ==========
+        async function analyzeLiqMap() {
+            const aiContent = document.getElementById('aiContent');
+            
+            if (selectedCoins.length < 1) {
+                aiContent.innerHTML = '请先选择至少一个加密币种';
+                return;
+            }
+            
+            aiContent.innerHTML = '📉 正在获取清算地图数据... (基于过去1天)';
+            
+            let report = '📉 **清算地图分析 (高中低密度)**\n';
+            report += '━━━━━━━━━━━━━━━━━━━━\n';
+            report += '数据来源: CoinGlass API (聚合所有交易所)\n\n';
+            
+            let hasCrypto = false;
+            
+            for (let index of selectedCoins) {
+                const coin = COINS[index];
+                if (coin.name === 'IXIC') continue;  // 跳过NASDAQ
+                
+                hasCrypto = true;
+                
+                try {
+                    const url = `https://open-api-v4.coinglass.com/api/futures/liquidation/aggregated-heatmap/model1?symbol=${coin.name}&range=1d`;
+                    const response = await fetch(url, {
+                        headers: { 'accept': 'application/json' }
+                    });
+                    
+                    if (!response.ok) {
+                        report += `❌ **${coin.name}**: 获取失败 (${response.status})\n`;
+                        continue;
+                    }
+                    
+                    const data = await response.json();
+                    if (!data.success || !data.data || data.data.length === 0) {
+                        report += `❌ **${coin.name}**: 无数据\n`;
+                        continue;
+                    }
+                    
+                    // 过滤totalLiqUsd > 0，并按降序排序
+                    let liqPoints = data.data.filter(p => p.totalLiqUsd > 0)
+                        .sort((a, b) => b.totalLiqUsd - a.totalLiqUsd);
+                    
+                    if (liqPoints.length === 0) {
+                        report += `❌ **${coin.name}**: 无有效清算数据\n`;
+                        continue;
+                    }
+                    
+                    report += `<span style="color:${coin.color}; font-weight:bold;">${coin.name}</span> 清算地图:\n`;
+                    
+                    // 高密度: top 3
+                    report += '• 高密度 (潜在爆仓磁铁):\n';
+                    for (let i = 0; i < Math.min(3, liqPoints.length); i++) {
+                        const p = liqPoints[i];
+                        const direction = p.longLiqUsd > p.shortLiqUsd ? '<span class="up">多头主导</span>' : '<span class="down">空头主导</span>';
+                        report += `  - 价格: $${p.price.toFixed(2)} | 总金额: $${p.totalLiqUsd.toFixed(0)} | ${direction}\n`;
+                    }
+                    
+                    // 中密度: next 3-6
+                    report += '• 中密度:\n';
+                    for (let i = 3; i < Math.min(6, liqPoints.length); i++) {
+                        const p = liqPoints[i];
+                        const direction = p.longLiqUsd > p.shortLiqUsd ? '<span class="up">多头主导</span>' : '<span class="down">空头主导</span>';
+                        report += `  - 价格: $${p.price.toFixed(2)} | 总金额: $${p.totalLiqUsd.toFixed(0)} | ${direction}\n`;
+                    }
+                    
+                    // 低密度: bottom 3 (如果有)
+                    if (liqPoints.length > 6) {
+                        report += '• 低密度:\n';
+                        const bottom = liqPoints.slice(-3);
+                        for (let p of bottom) {
+                            const direction = p.longLiqUsd > p.shortLiqUsd ? '<span class="up">多头主导</span>' : '<span class="down">空头主导</span>';
+                            report += `  - 价格: $${p.price.toFixed(2)} | 总金额: $${p.totalLiqUsd.toFixed(0)} | ${direction}\n`;
+                        }
+                    }
+                    
+                    report += '\n';
+                    
+                } catch (error) {
+                    console.error(`获取${coin.name}清算数据失败:`, error);
+                    report += `❌ **${coin.name}**: 错误\n`;
+                }
+            }
+            
+            if (!hasCrypto) {
+                report += '⚠️ 无加密币种选中 (NASDAQ不支持清算地图)\n';
+            }
+            
+            aiContent.innerHTML = report.replace(/\n/g, '<br>');
+        }
+
         // 绑定按钮事件
         document.getElementById('analyzeBtn').onclick = analyzeAll;
         document.getElementById('kline6hSimpleBtn').onclick = analyze6hSimple;
+        document.getElementById('liqMapBtn').onclick = analyzeLiqMap;
 
         window.onload = init;
     </script>
