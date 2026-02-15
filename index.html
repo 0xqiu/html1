@@ -1336,7 +1336,7 @@
             }
         }
 
-        // ========== 新增：6小时涨跌幅简洁对比 ==========
+        // ========== 6小时涨跌幅简洁对比（优化表达） ==========
         async function analyze6hSimple() {
             const aiContent = document.getElementById('aiContent');
             
@@ -1448,14 +1448,35 @@
                     for (let j = i + 1; j < validResults.length; j++) {
                         const diff = (validResults[i].change - validResults[j].change).toFixed(2);
                         report += `• ${validResults[i].name} vs ${validResults[j].name}: `;
-                        if (diff > 0) {
-                            report += `<span class="up">${validResults[i].name} 多涨 ${diff}%</span>\n`;
-                        } else if (diff < 0) {
-                            const absDiff = Math.abs(parseFloat(diff)).toFixed(2);
-                            report += `<span class="up">${validResults[j].name} 多涨 ${absDiff}%</span>\n`;
+                        
+                        // 根据涨跌情况选择合适的描述
+                        if (validResults[i].change >= 0 && validResults[j].change >= 0) {
+                            // 都涨
+                            if (diff > 0) {
+                                report += `<span class="up">${validResults[i].name} 多涨 ${diff}%</span>`;
+                            } else if (diff < 0) {
+                                report += `<span class="up">${validResults[j].name} 多涨 ${Math.abs(diff)}%</span>`;
+                            } else {
+                                report += `<span class="equal">涨幅持平</span>`;
+                            }
+                        } else if (validResults[i].change < 0 && validResults[j].change < 0) {
+                            // 都跌
+                            if (diff > 0) {
+                                report += `<span class="up">${validResults[i].name} 少跌 ${diff}%</span>`;
+                            } else if (diff < 0) {
+                                report += `<span class="up">${validResults[j].name} 少跌 ${Math.abs(diff)}%</span>`;
+                            } else {
+                                report += `<span class="equal">跌幅持平</span>`;
+                            }
                         } else {
-                            report += `<span class="equal">涨幅持平</span>\n`;
+                            // 一涨一跌
+                            if (diff > 0) {
+                                report += `<span class="up">${validResults[i].name} 上涨, ${validResults[j].name} 下跌, 差值 ${diff}%</span>`;
+                            } else {
+                                report += `<span class="up">${validResults[j].name} 上涨, ${validResults[i].name} 下跌, 差值 ${Math.abs(diff)}%</span>`;
+                            }
                         }
+                        report += '\n';
                     }
                 }
             }
@@ -1467,7 +1488,7 @@
                     if (coin && coin.color) return `<span style="color:${coin.color}; font-weight:bold;">${match}</span>`;
                     return match;
                 })
-                .replace(/(多涨)/g, '<span class="up">$1</span>');
+                .replace(/(多涨|少跌|上涨|下跌)/g, '<span class="up">$1</span>');
             
             aiContent.innerHTML = formattedReport.replace(/\n/g, '<br>');
         }
