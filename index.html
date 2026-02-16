@@ -715,10 +715,10 @@
                     <span class="ai-icon">🤖</span>
                     <span class="ai-title-text">DeepSeek AI · 技术分析</span>
                 </div>
-                <div style="display: flex; gap: 8px;">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <button class="ai-btn orange" id="kline6hSimpleBtn">📊 6H涨跌幅</button>
                     <button class="ai-btn" id="analyzeBtn">🚀 深度分析</button>
-                    <button class="ai-btn purple" id="liqMapBtn">📉 查看清算热图</button>
+                    <button class="ai-btn purple" id="liqAnalysisBtn">📉 清算区间</button>
                 </div>
             </div>
             <div class="ai-content" id="aiContent">
@@ -1511,43 +1511,85 @@
             aiContent.innerHTML = formattedReport.replace(/\n/g, '<br>');
         }
 
-        // ========== 清算热图：跳转免费网页版 ==========
-        function analyzeLiqMap() {
+        // ========== 新增：基于币安订单簿的清算区间分析 ==========
+        async function analyzeLiquidation() {
             const aiContent = document.getElementById('aiContent');
             
-            // 只处理加密币种
-            const cryptoSelected = selectedCoins.filter(i => COINS[i].name !== 'IXIC');
-            
-            if (cryptoSelected.length === 0) {
-                aiContent.innerHTML = '⚠️ 请先选择至少一个加密币种 (如BTC/ETH/SOL/BNB) 查看清算热图<br>NASDAQ不支持杠杆清算数据。';
+            // 过滤出加密币种
+            const cryptoIndices = selectedCoins.filter(i => COINS[i].name !== 'IXIC');
+            if (cryptoIndices.length === 0) {
+                aiContent.innerHTML = '⚠️ 请先选择至少一个加密币种 (BTC/ETH/SOL/BNB) 进行清算区间分析。';
                 return;
             }
+
+            // 取第一个加密币种作为分析对象（也可扩展为多币种，先简化）
+            const coinIndex = cryptoIndices[0];
+            const coin = COINS[coinIndex];
+            const symbol = coin.symbol; // BTCUSDT 等
             
-            // 以第一个选中的加密币打开
-            const firstCoin = COINS[cryptoSelected[0]].name;
-            // 用 CoinGlass (支持?coin=参数)
-            const url = `https://www.coinglass.com/pro/futures/LiquidationHeatMap?coin=${firstCoin}`;
+            aiContent.innerHTML = `📉 正在获取 ${coin.name} 订单簿数据，分析清算区间...`;
             
-            aiContent.innerHTML = `📉 正在跳转到 CoinGlass 清算热图（免费实时）<br>
-            • 颜色深浅表示密度：黄/红 = 高密度清算区（磁铁位）<br>
-            • 支持时间范围：1h/4h/12h/1d 等<br>
-            • 多币种：页面顶部切换查看其他选中的币<br><br>
-            跳转中...`;
-            
-            window.open(url, '_blank');
-            
-            // 如果多个币，额外提示
-            if (cryptoSelected.length > 1) {
-                setTimeout(() => {
-                    aiContent.innerHTML += '<br><br>已打开第一个币种示例。在打开的页面手动切换其他币种即可。';
-                }, 4000);
+            try {
+                // 1. 获取币安深度数据 (100档)
+                const depthUrl = `https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=100`;
+                const depthRes = await fetch(depthUrl);
+                if (!depthRes.ok) throw new Error('深度数据获取失败');
+                const depth = await depthRes.json();
+                
+                // 2. 获取当前价格（用于定位）
+                const currentPrice = getCoinPrice(coin) || (await fetchCryptoPrice(symbol));
+                
+                // 3. 解析买卖盘
+                const bids = depth.bids.map(b => ({ price: parseFloat(b[0]), qty: parseFloat(b[1]) }));
+                const asks = depth.asks.map(a => ({ price: parseFloat(a[0]), qty: parseFloat(a[1]) }));
+                
+                // 4. 按价格聚类，计算每个价格上的总挂单量（近似清算密度）
+                // 简单处理：保留原始数据，DeepSeek 可以自己分析
+                // 为了提示词更清晰，提取几个密集区域
+                
+                // 找出买一/卖一附近的大额挂单
+                const bidCumulative = bids.slice(0, 10).map(b => b.qty).reduce((a, b) => a + b, 0);
+                const askCumulative = asks.slice(0, 10).map(a => a.qty).reduce((a, b) => a + b, 0);
+                
+                // 构建提示词
+                const prompt = `你是一位合约交易专家。以下是 ${coin.name} 的币安订单簿深度数据（前100档）：
+
+【当前价格】${currentPrice ? currentPrice.toFixed(2) : '未知'}
+
+【买单挂单（前10档）】
+${bids.slice(0, 10).map(b => `价格 ${b.price.toFixed(2)} : 数量 ${b.qty.toFixed(3)}`).join('\n')}
+
+【卖单挂单（前10档）】
+${asks.slice(0, 10).map(a => `价格 ${a.price.toFixed(2)} : 数量 ${a.qty.toFixed(3)}`).join('\n')}
+
+请基于以上数据进行分析：
+1️⃣ **潜在清算密集区**：哪些价格区间堆积了大量订单，可能成为清算触发点（尤其是杠杆订单通常集中在这些位置）。
+2️⃣ **短期支撑与压力**：根据挂单量分布，给出当前价格附近的强支撑位和强压力位（具体到小数点后2位）。
+3️⃣ **多空风险提示**：如果价格跌破或突破某个密集区，可能引发的连锁反应。
+4️⃣ **交易建议**：基于清算密度，给出合理的止损/止盈参考位。
+
+请用专业、客观的语言回答，给出具体价位。`;
+                
+                // 5. 调用 DeepSeek 分析
+                const analysis = await callDeepSeekAPI(prompt);
+                
+                // 6. 格式化输出
+                let formattedAnalysis = analysis
+                    .replace(/(比特币|BTC|eth|ETH|sol|SOL|bnb|BNB)/g, `<span style="color:${coin.color}; font-weight:bold;">$1</span>`)
+                    .replace(/(支撑位|压力位|止损|止盈)/g, '<span style="color:#F59E0B;">$1</span>');
+                
+                aiContent.innerHTML = formattedAnalysis.replace(/\n/g, '<br>');
+                
+            } catch (error) {
+                console.error('清算区间分析失败:', error);
+                aiContent.innerHTML = `❌ 分析失败: ${error.message}`;
             }
         }
 
         // 绑定按钮事件
         document.getElementById('analyzeBtn').onclick = analyzeAll;
         document.getElementById('kline6hSimpleBtn').onclick = analyze6hSimple;
-        document.getElementById('liqMapBtn').onclick = analyzeLiqMap;
+        document.getElementById('liqAnalysisBtn').onclick = analyzeLiquidation;  // 新按钮
 
         window.onload = init;
     </script>
