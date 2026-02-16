@@ -147,6 +147,12 @@
             margin-bottom: 6px;
         }
 
+        .coin-sr {
+            font-size: 12px;
+            color: #F59E0B;
+            margin-top: 4px;
+        }
+
         .coin-change {
             font-size: 16px;
             font-weight: 700;
@@ -546,6 +552,10 @@
             background: #9945FF;
         }
 
+        .ai-btn.green {
+            background: #10B981;
+        }
+
         .ai-btn.orange:hover {
             background: #D97706;
         }
@@ -556,6 +566,10 @@
 
         .ai-btn.purple:hover {
             background: #7A3BCC;
+        }
+
+        .ai-btn.green:hover {
+            background: #059669;
         }
 
         .ai-content {
@@ -719,6 +733,7 @@
                     <button class="ai-btn orange" id="kline6hSimpleBtn">📊 6H涨跌幅</button>
                     <button class="ai-btn" id="analyzeBtn">🚀 深度分析</button>
                     <button class="ai-btn purple" id="liqAnalysisBtn">📉 清算区间</button>
+                    <button class="ai-btn green" id="supportResistanceBtn">📊 支撑压力</button>
                 </div>
             </div>
             <div class="ai-content" id="aiContent">
@@ -840,6 +855,7 @@
                         </div>
                         <div class="coin-price">${formatPrice(price, coin.name)}</div>
                         <div class="coin-base">基准: ${formatPrice(basePrice, coin.name)}</div>
+                        <div class="coin-sr" id="sr-${coin.name}" style="font-size:12px; color:#F59E0B; margin-top:4px;">支撑/压力: --</div>
                         <div class="coin-change ${change >= 0 ? 'up' : 'down'}" 
                              style="background: ${change >= 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}">
                             ${change > 0 ? '+' : ''}${change.toFixed(2)}%
@@ -1005,7 +1021,7 @@
             if (timeSinceLast < nasdaqInterval) return null;
 
             try {
-                const proxyUrl = 'https://corsproxy.io/?';  // 修改为可靠代理
+                const proxyUrl = 'https://corsproxy.io/?';
                 const targetUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EIXIC';
                 const response = await fetch(proxyUrl + encodeURIComponent(targetUrl));
                 if (!response.ok) {
@@ -1063,7 +1079,6 @@
                     }
                     renderVS();
                 } else if (selectedCoins.some(i => COINS[i].name === 'IXIC') && Date.now() - lastNasdaqUpdate > 300000) {  
-                    // 只在选中了 IXIC 才显示警告
                     document.getElementById('conclusionText').textContent = '⚠️ 纳斯达克数据更新延迟，可能市场休市';
                 }
                 nasdaqLoopTimer = setTimeout(nasdaqLoop, nasdaqInterval * 1000);
@@ -1321,7 +1336,7 @@
 
         // 调用DeepSeek API
         async function callDeepSeekAPI(prompt) {
-            const apiKey = 'sk-b43ec0ccfb174cf1a172cd8687a1400b'; // 用户提供的API Key
+            const apiKey = 'sk-b43ec0ccfb174cf1a172cd8687a1400b';
             
             try {
                 const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
@@ -1406,8 +1421,8 @@
                         const data = await response.json();
                         
                         if (data && data.length > 0) {
-                            const openPrice = parseFloat(data[0][1]);  // 开盘价
-                            const closePrice = parseFloat(data[0][4]); // 收盘价
+                            const openPrice = parseFloat(data[0][1]);
+                            const closePrice = parseFloat(data[0][4]);
                             change6h = ((closePrice - openPrice) / openPrice) * 100;
                         } else {
                             results.push({
@@ -1439,27 +1454,22 @@
             let report = '📈 **最近6小时涨跌幅对比**\n';
             report += '━━━━━━━━━━━━━━━━━━━━\n\n';
             
-            // 分离有效和无效数据
             const validResults = results.filter(r => typeof r.change === 'number');
             const invalidResults = results.filter(r => typeof r.change !== 'number');
             
-            // 按涨跌幅排序（从高到低）
             validResults.sort((a, b) => b.change - a.change);
             
-            // 输出每个币种的涨跌幅
             validResults.forEach(item => {
                 const changeStr = item.change > 0 ? `+${item.change.toFixed(2)}%` : `${item.change.toFixed(2)}%`;
                 report += `• **${item.name}**: ${changeStr}\n`;
             });
             
-            // 输出无效数据提示
             invalidResults.forEach(item => {
                 report += `❌ **${item.name}**: ${item.change}\n`;
             });
             
             report += '\n';
             
-            // 两两对比（只有至少两个有效数据时才进行）
             if (validResults.length >= 2) {
                 report += '**强弱对比**\n';
                 for (let i = 0; i < validResults.length - 1; i++) {
@@ -1467,9 +1477,7 @@
                         const diff = (validResults[i].change - validResults[j].change).toFixed(2);
                         report += `• ${validResults[i].name} vs ${validResults[j].name}: `;
                         
-                        // 根据涨跌情况选择合适的描述
                         if (validResults[i].change >= 0 && validResults[j].change >= 0) {
-                            // 都涨
                             if (diff > 0) {
                                 report += `<span class="up">${validResults[i].name} 多涨 ${diff}%</span>`;
                             } else if (diff < 0) {
@@ -1478,7 +1486,6 @@
                                 report += `<span class="equal">涨幅持平</span>`;
                             }
                         } else if (validResults[i].change < 0 && validResults[j].change < 0) {
-                            // 都跌
                             if (diff > 0) {
                                 report += `<span class="up">${validResults[i].name} 少跌 ${diff}%</span>`;
                             } else if (diff < 0) {
@@ -1487,7 +1494,6 @@
                                 report += `<span class="equal">跌幅持平</span>`;
                             }
                         } else {
-                            // 一涨一跌
                             if (diff > 0) {
                                 report += `<span class="up">${validResults[i].name} 上涨, ${validResults[j].name} 下跌, 差值 ${diff}%</span>`;
                             } else {
@@ -1499,7 +1505,6 @@
                 }
             }
             
-            // 格式化输出（添加颜色）
             let formattedReport = report
                 .replace(/(比特币|BTC|eth|ETH|sol|SOL|bnb|BNB|ixic|IXIC|纳斯达克)/g, match => {
                     const coin = results.find(r => r.name === match.toUpperCase());
@@ -1511,65 +1516,54 @@
             aiContent.innerHTML = formattedReport.replace(/\n/g, '<br>');
         }
 
-        // ========== 多币种订单簿清算区间分析 (优化版：基于全部1000档数据) ==========
-            async function analyzeLiquidation() {
+        // ========== 多币种订单簿清算区间分析 (limit=1000) ==========
+        async function analyzeLiquidation() {
             const aiContent = document.getElementById('aiContent');
-    
-    // 过滤出加密币种（排除IXIC）
+            
             const cryptoIndices = selectedCoins.filter(i => COINS[i].name !== 'IXIC');
             if (cryptoIndices.length === 0) {
-            aiContent.innerHTML = '⚠️ 请先选择至少一个加密币种 (BTC/ETH/SOL/BNB) 进行清算区间分析。';
-            return;
-        }
-
-    aiContent.innerHTML = `📉 正在获取 ${cryptoIndices.length} 个币种的订单簿数据，分析清算区间...`;
-
-    let analyses = [];  // 存储每个币种的分析结果
-    
-    // 串行处理每个币种，避免并发过多请求
-    for (let i = 0; i < cryptoIndices.length; i++) {
-        const coinIndex = cryptoIndices[i];
-        const coin = COINS[coinIndex];
-        const symbol = coin.symbol;
-        
-        // 更新提示
-        aiContent.innerHTML = `📉 [${i+1}/${cryptoIndices.length}] 正在分析 ${coin.name} 订单簿...`;
-        
-        try {
-            // 1. 获取币安深度数据，使用 limit=1000 覆盖更大价格范围
-            const depthUrl = `https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=1000`;
-            const depthRes = await fetch(depthUrl);
-            if (!depthRes.ok) throw new Error(`${coin.name}深度数据获取失败`);
-            const depth = await depthRes.json();
-            
-            // 2. 获取当前价格（优先用已有价格）
-            let currentPrice = getCoinPrice(coin);
-            if (!currentPrice) {
-                const price = await fetchCryptoPrice(symbol);
-                if (price) currentPrice = price;
+                aiContent.innerHTML = '⚠️ 请先选择至少一个加密币种 (BTC/ETH/SOL/BNB) 进行清算区间分析。';
+                return;
             }
+
+            aiContent.innerHTML = `📉 正在获取 ${cryptoIndices.length} 个币种的订单簿数据，分析清算区间...`;
+
+            let analyses = [];
             
-            // 3. 解析买卖盘
-            const bids = depth.bids.map(b => ({ price: parseFloat(b[0]), qty: parseFloat(b[1]) }));
-            const asks = depth.asks.map(a => ({ price: parseFloat(a[0]), qty: parseFloat(a[1]) }));
-            
-            // 4. 计算一些统计数据，帮助AI理解整体深度
-            // 计算买盘总挂单量
-            const totalBidQty = bids.reduce((sum, b) => sum + b.qty, 0);
-            const totalAskQty = asks.reduce((sum, a) => sum + a.qty, 0);
-            
-            // 计算价格范围（最远档位与当前价的差值）
-            const farthestBidPrice = bids[bids.length - 1]?.price || currentPrice;
-            const farthestAskPrice = asks[asks.length - 1]?.price || currentPrice;
-            const bidRangePercent = currentPrice ? ((currentPrice - farthestBidPrice) / currentPrice * 100).toFixed(2) : '未知';
-            const askRangePercent = currentPrice ? ((farthestAskPrice - currentPrice) / currentPrice * 100).toFixed(2) : '未知';
-            
-            // 找出挂单量最大的几个价位（密集区）
-            const topBidClusters = [...bids].sort((a, b) => b.qty - a.qty).slice(0, 5);
-            const topAskClusters = [...asks].sort((a, b) => b.qty - a.qty).slice(0, 5);
-            
-            // 5. 构建针对该币种的提示词，包含1000档的统计摘要
-            const prompt = `你是一位合约交易专家。以下是 ${coin.name} 的币安订单簿深度数据摘要（基于前1000档）：
+            for (let i = 0; i < cryptoIndices.length; i++) {
+                const coinIndex = cryptoIndices[i];
+                const coin = COINS[coinIndex];
+                const symbol = coin.symbol;
+                
+                aiContent.innerHTML = `📉 [${i+1}/${cryptoIndices.length}] 正在分析 ${coin.name} 订单簿...`;
+                
+                try {
+                    const depthUrl = `https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=1000`;
+                    const depthRes = await fetch(depthUrl);
+                    if (!depthRes.ok) throw new Error(`${coin.name}深度数据获取失败`);
+                    const depth = await depthRes.json();
+                    
+                    let currentPrice = getCoinPrice(coin);
+                    if (!currentPrice) {
+                        const price = await fetchCryptoPrice(symbol);
+                        if (price) currentPrice = price;
+                    }
+                    
+                    const bids = depth.bids.map(b => ({ price: parseFloat(b[0]), qty: parseFloat(b[1]) }));
+                    const asks = depth.asks.map(a => ({ price: parseFloat(a[0]), qty: parseFloat(a[1]) }));
+                    
+                    const totalBidQty = bids.reduce((sum, b) => sum + b.qty, 0);
+                    const totalAskQty = asks.reduce((sum, a) => sum + a.qty, 0);
+                    
+                    const farthestBidPrice = bids[bids.length - 1]?.price || currentPrice;
+                    const farthestAskPrice = asks[asks.length - 1]?.price || currentPrice;
+                    const bidRangePercent = currentPrice ? ((currentPrice - farthestBidPrice) / currentPrice * 100).toFixed(2) : '未知';
+                    const askRangePercent = currentPrice ? ((farthestAskPrice - currentPrice) / currentPrice * 100).toFixed(2) : '未知';
+                    
+                    const topBidClusters = [...bids].sort((a, b) => b.qty - a.qty).slice(0, 5);
+                    const topAskClusters = [...asks].sort((a, b) => b.qty - a.qty).slice(0, 5);
+                    
+                    const prompt = `你是一位合约交易专家。以下是 ${coin.name} 的币安订单簿深度数据摘要（基于前1000档）：
 
 【当前价格】${currentPrice ? currentPrice.toFixed(2) : '未知'}
 
@@ -1597,41 +1591,75 @@ ${topAskClusters.map(a => `价格 ${a.price.toFixed(2)} : 数量 ${a.qty.toFixed
 
 请用专业、客观的语言回答，给出具体价位。`;
                     
-            // 6. 调用 DeepSeek 分析
-            const analysis = await callDeepSeekAPI(prompt);
+                    const analysis = await callDeepSeekAPI(prompt);
+                    
+                    analyses.push({
+                        coinName: coin.name,
+                        color: coin.color,
+                        content: analysis
+                    });
+                    
+                } catch (error) {
+                    console.error(`${coin.name}清算区间分析失败:`, error);
+                    analyses.push({
+                        coinName: coin.name,
+                        color: coin.color,
+                        content: `❌ 分析失败: ${error.message}`
+                    });
+                }
+            }
             
-            // 7. 存储结果，带上币种标题
-            analyses.push({
-                coinName: coin.name,
-                color: coin.color,
-                content: analysis
-            });
+            let finalReport = '';
+            for (let item of analyses) {
+                finalReport += `━━━━━━━━━━━━━━━━━━━━\n`;
+                finalReport += `<span style="color:${item.color}; font-size:1.1em; font-weight:bold;">📊 ${item.coinName} 清算区间分析</span>\n`;
+                finalReport += `${item.content}\n\n`;
+            }
             
-        } catch (error) {
-            console.error(`${coin.name}清算区间分析失败:`, error);
-            analyses.push({
-                coinName: coin.name,
-                color: coin.color,
-                content: `❌ 分析失败: ${error.message}`
-            });
+            aiContent.innerHTML = finalReport.replace(/\n/g, '<br>');
         }
-    }
-    
-    // 8. 汇总输出
-    let finalReport = '';
-    for (let item of analyses) {
-        finalReport += `━━━━━━━━━━━━━━━━━━━━\n`;
-        finalReport += `<span style="color:${item.color}; font-size:1.1em; font-weight:bold;">📊 ${item.coinName} 清算区间分析</span>\n`;
-        finalReport += `${item.content}\n\n`;
-    }
-    
-    aiContent.innerHTML = finalReport.replace(/\n/g, '<br>');
-}
+
+        // ========== 新增：获取支撑压力位（买一/卖一）并更新到币种下方 ==========
+        async function updateSupportResistance() {
+            const cryptoIndices = selectedCoins.filter(i => COINS[i].name !== 'IXIC');
+            if (cryptoIndices.length === 0) {
+                alert('请至少选择一个加密币种');
+                return;
+            }
+
+            for (let index of cryptoIndices) {
+                const coin = COINS[index];
+                const symbol = coin.symbol;
+                try {
+                    // 获取深度数据（前5档足够）
+                    const depthUrl = `https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=5`;
+                    const res = await fetch(depthUrl);
+                    if (!res.ok) continue;
+                    const depth = await res.json();
+                    
+                    // 买一价（最高买价）作为支撑，卖一价（最低卖价）作为压力
+                    const bidPrice = depth.bids[0] ? parseFloat(depth.bids[0][0]) : null;
+                    const askPrice = depth.asks[0] ? parseFloat(depth.asks[0][0]) : null;
+                    
+                    const srElement = document.getElementById(`sr-${coin.name}`);
+                    if (srElement) {
+                        if (bidPrice && askPrice) {
+                            srElement.innerHTML = `支撑: ${bidPrice.toFixed(2)} / 压力: ${askPrice.toFixed(2)}`;
+                        } else {
+                            srElement.innerHTML = '支撑/压力: 暂无数据';
+                        }
+                    }
+                } catch (error) {
+                    console.error(`获取${coin.name}支撑压力失败:`, error);
+                }
+            }
+        }
 
         // 绑定按钮事件
         document.getElementById('analyzeBtn').onclick = analyzeAll;
         document.getElementById('kline6hSimpleBtn').onclick = analyze6hSimple;
-        document.getElementById('liqAnalysisBtn').onclick = analyzeLiquidation;  // 新按钮绑定多币种清算分析
+        document.getElementById('liqAnalysisBtn').onclick = analyzeLiquidation;
+        document.getElementById('supportResistanceBtn').onclick = updateSupportResistance;
 
         window.onload = init;
     </script>
