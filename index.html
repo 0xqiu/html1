@@ -1536,8 +1536,8 @@
                 aiContent.innerHTML = `📉 [${i+1}/${cryptoIndices.length}] 正在分析 ${coin.name} 订单簿...`;
                 
                 try {
-                    // 1. 获取币安深度数据 (100档)
-                    const depthUrl = `https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=100`;
+                    // 1. 获取币安深度数据 (1000档)
+                    const depthUrl = `https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=1000`;
                     const depthRes = await fetch(depthUrl);
                     if (!depthRes.ok) throw new Error(`${coin.name}深度数据获取失败`);
                     const depth = await depthRes.json();
