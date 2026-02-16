@@ -1511,50 +1511,50 @@
             aiContent.innerHTML = formattedReport.replace(/\n/g, '<br>');
         }
 
-        // ========== 新增：基于币安订单簿的清算区间分析 ==========
-async function analyzeLiquidation() {
-    const aiContent = document.getElementById('aiContent');
-    
-    // 过滤出加密币种（排除IXIC）
-    const cryptoIndices = selectedCoins.filter(i => COINS[i].name !== 'IXIC');
-    if (cryptoIndices.length === 0) {
-        aiContent.innerHTML = '⚠️ 请先选择至少一个加密币种 (BTC/ETH/SOL/BNB) 进行清算区间分析。';
-        return;
-    }
-
-    aiContent.innerHTML = `📉 正在获取 ${cryptoIndices.length} 个币种的订单簿数据，分析清算区间...`;
-
-    let analyses = [];  // 存储每个币种的分析结果
-    
-    // 串行处理每个币种，避免并发过多请求
-    for (let i = 0; i < cryptoIndices.length; i++) {
-        const coinIndex = cryptoIndices[i];
-        const coin = COINS[coinIndex];
-        const symbol = coin.symbol;
-        
-        // 更新提示
-        aiContent.innerHTML = `📉 [${i+1}/${cryptoIndices.length}] 正在分析 ${coin.name} 订单簿...`;
-        
-        try {
-            // 1. 获取币安深度数据 (100档)
-            const depthUrl = `https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=100`;
-            const depthRes = await fetch(depthUrl);
-            if (!depthRes.ok) throw new Error(`${coin.name}深度数据获取失败`);
-            const depth = await depthRes.json();
+        // ========== 多币种订单簿清算区间分析 ==========
+        async function analyzeLiquidation() {
+            const aiContent = document.getElementById('aiContent');
             
-            // 2. 获取当前价格（优先用已有价格）
-            let currentPrice = getCoinPrice(coin);
-            if (!currentPrice) {
-                const price = await fetchCryptoPrice(symbol);
-                if (price) currentPrice = price;
+            // 过滤出加密币种（排除IXIC）
+            const cryptoIndices = selectedCoins.filter(i => COINS[i].name !== 'IXIC');
+            if (cryptoIndices.length === 0) {
+                aiContent.innerHTML = '⚠️ 请先选择至少一个加密币种 (BTC/ETH/SOL/BNB) 进行清算区间分析。';
+                return;
             }
+
+            aiContent.innerHTML = `📉 正在获取 ${cryptoIndices.length} 个币种的订单簿数据，分析清算区间...`;
+
+            let analyses = [];  // 存储每个币种的分析结果
             
-            // 3. 解析买卖盘
-            const bids = depth.bids.map(b => ({ price: parseFloat(b[0]), qty: parseFloat(b[1]) }));
-            const asks = depth.asks.map(a => ({ price: parseFloat(a[0]), qty: parseFloat(a[1]) }));
-            
-            // 4. 构建针对该币种的提示词
-            const prompt = `你是一位合约交易专家。以下是 ${coin.name} 的币安订单簿深度数据（前100档）：
+            // 串行处理每个币种，避免并发过多请求
+            for (let i = 0; i < cryptoIndices.length; i++) {
+                const coinIndex = cryptoIndices[i];
+                const coin = COINS[coinIndex];
+                const symbol = coin.symbol;
+                
+                // 更新提示
+                aiContent.innerHTML = `📉 [${i+1}/${cryptoIndices.length}] 正在分析 ${coin.name} 订单簿...`;
+                
+                try {
+                    // 1. 获取币安深度数据 (100档)
+                    const depthUrl = `https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=100`;
+                    const depthRes = await fetch(depthUrl);
+                    if (!depthRes.ok) throw new Error(`${coin.name}深度数据获取失败`);
+                    const depth = await depthRes.json();
+                    
+                    // 2. 获取当前价格（优先用已有价格）
+                    let currentPrice = getCoinPrice(coin);
+                    if (!currentPrice) {
+                        const price = await fetchCryptoPrice(symbol);
+                        if (price) currentPrice = price;
+                    }
+                    
+                    // 3. 解析买卖盘
+                    const bids = depth.bids.map(b => ({ price: parseFloat(b[0]), qty: parseFloat(b[1]) }));
+                    const asks = depth.asks.map(a => ({ price: parseFloat(a[0]), qty: parseFloat(a[1]) }));
+                    
+                    // 4. 构建针对该币种的提示词
+                    const prompt = `你是一位合约交易专家。以下是 ${coin.name} 的币安订单簿深度数据（前100档）：
 
 【当前价格】${currentPrice ? currentPrice.toFixed(2) : '未知'}
 
@@ -1571,48 +1571,42 @@ ${asks.slice(0, 10).map(a => `价格 ${a.price.toFixed(2)} : 数量 ${a.qty.toFi
 4️⃣ **交易建议**：基于清算密度，给出合理的止损/止盈参考位。
 
 请用专业、客观的语言回答，给出具体价位。`;
-            
-            // 5. 调用 DeepSeek 分析
-            const analysis = await callDeepSeekAPI(prompt);
-            
-            // 6. 存储结果，带上币种标题
-            analyses.push({
-                coinName: coin.name,
-                color: coin.color,
-                content: analysis
-            });
-            
-        } catch (error) {
-            console.error(`${coin.name}清算区间分析失败:`, error);
-            analyses.push({
-                coinName: coin.name,
-                color: coin.color,
-                content: `❌ 分析失败: ${error.message}`
-            });
-        }
-    }
-    
-    // 7. 汇总输出
-    let finalReport = '';
-    for (let item of analyses) {
-        finalReport += `━━━━━━━━━━━━━━━━━━━━\n`;
-        finalReport += `<span style="color:${item.color}; font-size:1.1em; font-weight:bold;">📊 ${item.coinName} 清算区间分析</span>\n`;
-        finalReport += `${item.content}\n\n`;
-    }
-    
-    aiContent.innerHTML = finalReport.replace(/\n/g, '<br>');
-}
-                
-            } catch (error) {
-                console.error('清算区间分析失败:', error);
-                aiContent.innerHTML = `❌ 分析失败: ${error.message}`;
+                    
+                    // 5. 调用 DeepSeek 分析
+                    const analysis = await callDeepSeekAPI(prompt);
+                    
+                    // 6. 存储结果，带上币种标题
+                    analyses.push({
+                        coinName: coin.name,
+                        color: coin.color,
+                        content: analysis
+                    });
+                    
+                } catch (error) {
+                    console.error(`${coin.name}清算区间分析失败:`, error);
+                    analyses.push({
+                        coinName: coin.name,
+                        color: coin.color,
+                        content: `❌ 分析失败: ${error.message}`
+                    });
+                }
             }
+            
+            // 7. 汇总输出
+            let finalReport = '';
+            for (let item of analyses) {
+                finalReport += `━━━━━━━━━━━━━━━━━━━━\n`;
+                finalReport += `<span style="color:${item.color}; font-size:1.1em; font-weight:bold;">📊 ${item.coinName} 清算区间分析</span>\n`;
+                finalReport += `${item.content}\n\n`;
+            }
+            
+            aiContent.innerHTML = finalReport.replace(/\n/g, '<br>');
         }
 
         // 绑定按钮事件
         document.getElementById('analyzeBtn').onclick = analyzeAll;
         document.getElementById('kline6hSimpleBtn').onclick = analyze6hSimple;
-        document.getElementById('liqAnalysisBtn').onclick = analyzeLiquidation;  // 新按钮
+        document.getElementById('liqAnalysisBtn').onclick = analyzeLiquidation;  // 新按钮绑定多币种清算分析
 
         window.onload = init;
     </script>
