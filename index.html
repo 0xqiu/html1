@@ -1511,97 +1511,122 @@
             aiContent.innerHTML = formattedReport.replace(/\n/g, '<br>');
         }
 
-        // ========== 多币种订单簿清算区间分析 ==========
-        async function analyzeLiquidation() {
+        // ========== 多币种订单簿清算区间分析 (优化版：基于全部1000档数据) ==========
+            async function analyzeLiquidation() {
             const aiContent = document.getElementById('aiContent');
-            
-            // 过滤出加密币种（排除IXIC）
+    
+    // 过滤出加密币种（排除IXIC）
             const cryptoIndices = selectedCoins.filter(i => COINS[i].name !== 'IXIC');
             if (cryptoIndices.length === 0) {
-                aiContent.innerHTML = '⚠️ 请先选择至少一个加密币种 (BTC/ETH/SOL/BNB) 进行清算区间分析。';
-                return;
-            }
+            aiContent.innerHTML = '⚠️ 请先选择至少一个加密币种 (BTC/ETH/SOL/BNB) 进行清算区间分析。';
+            return;
+        }
 
-            aiContent.innerHTML = `📉 正在获取 ${cryptoIndices.length} 个币种的订单簿数据，分析清算区间...`;
+    aiContent.innerHTML = `📉 正在获取 ${cryptoIndices.length} 个币种的订单簿数据，分析清算区间...`;
 
-            let analyses = [];  // 存储每个币种的分析结果
+    let analyses = [];  // 存储每个币种的分析结果
+    
+    // 串行处理每个币种，避免并发过多请求
+    for (let i = 0; i < cryptoIndices.length; i++) {
+        const coinIndex = cryptoIndices[i];
+        const coin = COINS[coinIndex];
+        const symbol = coin.symbol;
+        
+        // 更新提示
+        aiContent.innerHTML = `📉 [${i+1}/${cryptoIndices.length}] 正在分析 ${coin.name} 订单簿...`;
+        
+        try {
+            // 1. 获取币安深度数据，使用 limit=1000 覆盖更大价格范围
+            const depthUrl = `https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=1000`;
+            const depthRes = await fetch(depthUrl);
+            if (!depthRes.ok) throw new Error(`${coin.name}深度数据获取失败`);
+            const depth = await depthRes.json();
             
-            // 串行处理每个币种，避免并发过多请求
-            for (let i = 0; i < cryptoIndices.length; i++) {
-                const coinIndex = cryptoIndices[i];
-                const coin = COINS[coinIndex];
-                const symbol = coin.symbol;
-                
-                // 更新提示
-                aiContent.innerHTML = `📉 [${i+1}/${cryptoIndices.length}] 正在分析 ${coin.name} 订单簿...`;
-                
-                try {
-                    // 1. 获取币安深度数据 (1000档)
-                    const depthUrl = `https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=1000`;
-                    const depthRes = await fetch(depthUrl);
-                    if (!depthRes.ok) throw new Error(`${coin.name}深度数据获取失败`);
-                    const depth = await depthRes.json();
-                    
-                    // 2. 获取当前价格（优先用已有价格）
-                    let currentPrice = getCoinPrice(coin);
-                    if (!currentPrice) {
-                        const price = await fetchCryptoPrice(symbol);
-                        if (price) currentPrice = price;
-                    }
-                    
-                    // 3. 解析买卖盘
-                    const bids = depth.bids.map(b => ({ price: parseFloat(b[0]), qty: parseFloat(b[1]) }));
-                    const asks = depth.asks.map(a => ({ price: parseFloat(a[0]), qty: parseFloat(a[1]) }));
-                    
-                    // 4. 构建针对该币种的提示词
-                    const prompt = `你是一位合约交易专家。以下是 ${coin.name} 的币安订单簿深度数据（前100档）：
+            // 2. 获取当前价格（优先用已有价格）
+            let currentPrice = getCoinPrice(coin);
+            if (!currentPrice) {
+                const price = await fetchCryptoPrice(symbol);
+                if (price) currentPrice = price;
+            }
+            
+            // 3. 解析买卖盘
+            const bids = depth.bids.map(b => ({ price: parseFloat(b[0]), qty: parseFloat(b[1]) }));
+            const asks = depth.asks.map(a => ({ price: parseFloat(a[0]), qty: parseFloat(a[1]) }));
+            
+            // 4. 计算一些统计数据，帮助AI理解整体深度
+            // 计算买盘总挂单量
+            const totalBidQty = bids.reduce((sum, b) => sum + b.qty, 0);
+            const totalAskQty = asks.reduce((sum, a) => sum + a.qty, 0);
+            
+            // 计算价格范围（最远档位与当前价的差值）
+            const farthestBidPrice = bids[bids.length - 1]?.price || currentPrice;
+            const farthestAskPrice = asks[asks.length - 1]?.price || currentPrice;
+            const bidRangePercent = currentPrice ? ((currentPrice - farthestBidPrice) / currentPrice * 100).toFixed(2) : '未知';
+            const askRangePercent = currentPrice ? ((farthestAskPrice - currentPrice) / currentPrice * 100).toFixed(2) : '未知';
+            
+            // 找出挂单量最大的几个价位（密集区）
+            const topBidClusters = [...bids].sort((a, b) => b.qty - a.qty).slice(0, 5);
+            const topAskClusters = [...asks].sort((a, b) => b.qty - a.qty).slice(0, 5);
+            
+            // 5. 构建针对该币种的提示词，包含1000档的统计摘要
+            const prompt = `你是一位合约交易专家。以下是 ${coin.name} 的币安订单簿深度数据摘要（基于前1000档）：
 
 【当前价格】${currentPrice ? currentPrice.toFixed(2) : '未知'}
 
-【买单挂单（前10档）】
-${bids.slice(0, 10).map(b => `价格 ${b.price.toFixed(2)} : 数量 ${b.qty.toFixed(3)}`).join('\n')}
+【整体深度统计】
+- 买单总挂单量: ${totalBidQty.toFixed(3)} ${coin.name}
+- 卖单总挂单量: ${totalAskQty.toFixed(3)} ${coin.name}
+- 买盘覆盖范围: 向下约 ${bidRangePercent}%
+- 卖盘覆盖范围: 向上约 ${askRangePercent}%
 
-【卖单挂单（前10档）】
-${asks.slice(0, 10).map(a => `价格 ${a.price.toFixed(2)} : 数量 ${a.qty.toFixed(3)}`).join('\n')}
+【挂单量最大的5个买单价位（潜在支撑区）】
+${topBidClusters.map(b => `价格 ${b.price.toFixed(2)} : 数量 ${b.qty.toFixed(3)}`).join('\n')}
+
+【挂单量最大的5个卖单价位（潜在压力区）】
+${topAskClusters.map(a => `价格 ${a.price.toFixed(2)} : 数量 ${a.qty.toFixed(3)}`).join('\n')}
+
+【价格分布概况】
+- 买单最远价格: ${farthestBidPrice.toFixed(2)}
+- 卖单最远价格: ${farthestAskPrice.toFixed(2)}
 
 请基于以上数据进行分析：
-1️⃣ **潜在清算密集区**：哪些价格区间堆积了大量订单，可能成为清算触发点（尤其是杠杆订单通常集中在这些位置）。
-2️⃣ **短期支撑与压力**：根据挂单量分布，给出当前价格附近的强支撑位和强压力位（具体到小数点后2位）。
-3️⃣ **多空风险提示**：如果价格跌破或突破某个密集区，可能引发的连锁反应。
-4️⃣ **交易建议**：基于清算密度，给出合理的止损/止盈参考位。
+1️⃣ **潜在清算密集区**：基于挂单量最大的价位，分析哪些价格区间可能成为清算触发点。同时考虑更远距离的订单堆积情况。
+2️⃣ **短期支撑与压力**：结合挂单量分布和整体覆盖范围，给出当前价格附近的强支撑位和强压力位（具体到小数点后2位）。
+3️⃣ **多空风险提示**：如果价格跌破或突破某个密集区，可能引发的连锁反应。根据买盘/卖盘总挂单量对比，判断哪一方更容易被击穿。
+4️⃣ **交易建议**：基于清算密度和整体深度，给出合理的止损/止盈参考位，以及潜在的反转区域。
 
 请用专业、客观的语言回答，给出具体价位。`;
                     
-                    // 5. 调用 DeepSeek 分析
-                    const analysis = await callDeepSeekAPI(prompt);
-                    
-                    // 6. 存储结果，带上币种标题
-                    analyses.push({
-                        coinName: coin.name,
-                        color: coin.color,
-                        content: analysis
-                    });
-                    
-                } catch (error) {
-                    console.error(`${coin.name}清算区间分析失败:`, error);
-                    analyses.push({
-                        coinName: coin.name,
-                        color: coin.color,
-                        content: `❌ 分析失败: ${error.message}`
-                    });
-                }
-            }
+            // 6. 调用 DeepSeek 分析
+            const analysis = await callDeepSeekAPI(prompt);
             
-            // 7. 汇总输出
-            let finalReport = '';
-            for (let item of analyses) {
-                finalReport += `━━━━━━━━━━━━━━━━━━━━\n`;
-                finalReport += `<span style="color:${item.color}; font-size:1.1em; font-weight:bold;">📊 ${item.coinName} 清算区间分析</span>\n`;
-                finalReport += `${item.content}\n\n`;
-            }
+            // 7. 存储结果，带上币种标题
+            analyses.push({
+                coinName: coin.name,
+                color: coin.color,
+                content: analysis
+            });
             
-            aiContent.innerHTML = finalReport.replace(/\n/g, '<br>');
+        } catch (error) {
+            console.error(`${coin.name}清算区间分析失败:`, error);
+            analyses.push({
+                coinName: coin.name,
+                color: coin.color,
+                content: `❌ 分析失败: ${error.message}`
+            });
         }
+    }
+    
+    // 8. 汇总输出
+    let finalReport = '';
+    for (let item of analyses) {
+        finalReport += `━━━━━━━━━━━━━━━━━━━━\n`;
+        finalReport += `<span style="color:${item.color}; font-size:1.1em; font-weight:bold;">📊 ${item.coinName} 清算区间分析</span>\n`;
+        finalReport += `${item.content}\n\n`;
+    }
+    
+    aiContent.innerHTML = finalReport.replace(/\n/g, '<br>');
+}
 
         // 绑定按钮事件
         document.getElementById('analyzeBtn').onclick = analyzeAll;
