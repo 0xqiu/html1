@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>🚀 强弱对比 · 多VS对比</title>
     <style>
-        /* 样式与您之前保持一致（此处省略以节省篇幅，实际使用时请保留原样式） */
+        /* 样式与之前保持一致，此处省略以节省篇幅，实际使用时请保留原样式 */
+        /* 请确保所有原有样式都在这里 */
         * {
             margin: 0;
             padding: 0;
@@ -181,7 +182,6 @@
             font-weight: 700;
         }
 
-        /* 开始按钮 */
         .start-button {
             background: #10B981;
             color: white;
@@ -291,7 +291,6 @@
             color: black;
         }
 
-        /* 频率控制区域 - 紧凑布局 */
         .freq-panel {
             background: #1A1E26;
             border: 1px solid #2D3748;
@@ -359,7 +358,6 @@
             color: #F59E0B;
         }
 
-        /* 近期记录卡片 */
         .records-card {
             background: #1A1E26;
             border: 1px solid #2D3748;
@@ -385,7 +383,6 @@
             color: #94A3B8;
         }
 
-        /* 手机卡片记录样式 */
         .mobile-records {
             display: flex;
             flex-direction: column;
@@ -451,7 +448,6 @@
             text-align: right;
         }
 
-        /* 桌面表格 - 优化，一行展示所有币种，无冗余 */
         .desktop-records {
             display: none;
         }
@@ -556,6 +552,10 @@
             background: #10B981;
         }
 
+        .ai-btn.blue {
+            background: #3B82F6;
+        }
+
         .ai-btn.orange:hover {
             background: #D97706;
         }
@@ -570,6 +570,10 @@
 
         .ai-btn.green:hover {
             background: #059669;
+        }
+
+        .ai-btn.blue:hover {
+            background: #2563EB;
         }
 
         .ai-content {
@@ -656,7 +660,7 @@
             </div>
         </div>
 
-        <!-- 频率控制区域 (紧凑) -->
+        <!-- 频率控制区域 -->
         <div class="freq-panel">
             <div class="freq-row">
                 <div class="freq-item">
@@ -716,7 +720,7 @@
                 <div class="empty-state">⏳ 等待数据...</div>
             </div>
 
-            <!-- 桌面端表格记录 (已修复错位) -->
+            <!-- 桌面端表格记录 -->
             <div id="desktopRecords" class="desktop-records">
                 <div class="records-table" id="recordsTable"></div>
             </div>
@@ -733,7 +737,8 @@
                     <button class="ai-btn orange" id="kline6hSimpleBtn">📊 6H涨跌幅</button>
                     <button class="ai-btn" id="analyzeBtn">🚀 深度分析</button>
                     <button class="ai-btn purple" id="liqAnalysisBtn">📉 清算区间</button>
-                    <button class="ai-btn green" id="supportResistanceBtn">📊 支撑压力</button>
+                    <button class="ai-btn green" id="supportResistanceBtn">📊 清算区</button>
+                    <button class="ai-btn blue" id="patternBtn">🔍 识别形态</button>
                 </div>
             </div>
             <div class="ai-content" id="aiContent">
@@ -763,7 +768,7 @@
         ];
 
         // ========== 状态变量 ==========
-        let selectedCoins = [0, 2]; // 默认选中BTC和IXIC
+        let selectedCoins = [0, 2]; // 默认选中BTC和SOL
         let cryptoInterval = 1;
         let nasdaqInterval = 6;
         let recordInterval = 10;
@@ -779,8 +784,8 @@
         let nasdaqLoopTimer = null;
         let recordLoopTimer = null;
 
-        // 存储每个币种的支撑压力位数据（改进后存储聚合区间字符串）
-        let supportResistanceData = {}; // 格式: { "BTC": "支撑区: 68250-68300,68350-68380 / 压力区: 68450-68500,68600-68650", ... }
+        // 存储每个币种的清算区域数据
+        let liquidationZoneData = {};
 
         // ========== 初始化 ==========
         function init() {
@@ -824,8 +829,8 @@
                 }
             }
 
-            // 切换币种时清空之前的支撑压力数据（不同币种的数据不通用）
-            supportResistanceData = {};
+            // 切换币种时清空之前的清算区域数据
+            liquidationZoneData = {};
 
             createCoinButtons();
             renderVS();
@@ -852,8 +857,7 @@
                 const basePrice = basePrices[coin.symbol] || price;
                 const change = basePrice ? ((price - basePrice) / basePrice * 100) : 0;
 
-                // 从 supportResistanceData 中获取该币种的支撑压力文本，如果没有则显示 "--"
-                const srText = supportResistanceData[coin.name] || '支撑/压力: --';
+                const srText = liquidationZoneData[coin.name] || '清算区: --';
 
                 html += `
                     <div class="coin-block">
@@ -1608,13 +1612,10 @@ ${topAskClusters.map(a => `价格 ${a.price.toFixed(2)} : 数量 ${a.qty.toFixed
 
         // ========== 改进的支撑压力计算：基于500档订单簿挂单量聚合区间 ==========
         function findSupportResistance(bids, asks, currentPrice) {
-            // 按价格聚合区间，阈值设为当前价格的0.1%
             const threshold = currentPrice * 0.001; // 0.1%
 
-            // 聚合买单（支撑区）
             const aggregate = (orders, descending = true) => {
                 if (orders.length === 0) return [];
-                // 按价格排序
                 const sorted = [...orders].sort((a, b) => descending ? b.price - a.price : a.price - b.price);
                 const ranges = [];
                 let currentRange = {
@@ -1624,7 +1625,6 @@ ${topAskClusters.map(a => `价格 ${a.price.toFixed(2)} : 数量 ${a.qty.toFixed
                 };
                 for (let i = 1; i < sorted.length; i++) {
                     const order = sorted[i];
-                    // 如果价格差距小于阈值，合并
                     if (Math.abs(order.price - currentRange.maxPrice) <= threshold) {
                         currentRange.maxPrice = Math.max(currentRange.maxPrice, order.price);
                         currentRange.minPrice = Math.min(currentRange.minPrice, order.price);
@@ -1639,18 +1639,16 @@ ${topAskClusters.map(a => `价格 ${a.price.toFixed(2)} : 数量 ${a.qty.toFixed
                     }
                 }
                 ranges.push(currentRange);
-                // 按挂单量排序取前3
                 return ranges.sort((a, b) => b.totalQty - a.totalQty).slice(0, 3);
             };
 
             const supportRanges = aggregate(bids, true);
             const resistanceRanges = aggregate(asks, false);
 
-            // 格式化输出
             const formatRange = (r) => `${r.minPrice.toFixed(2)}-${r.maxPrice.toFixed(2)}`;
             const supportStr = supportRanges.map(formatRange).join(', ');
             const resistanceStr = resistanceRanges.map(formatRange).join(', ');
-            return `支撑区: ${supportStr || '无'} / 压力区: ${resistanceStr || '无'}`;
+            return `清算区: 买区 ${supportStr || '无'} / 卖区 ${resistanceStr || '无'}`;
         }
 
         // ========== 更新支撑压力位（改进版） ==========
@@ -1658,11 +1656,11 @@ ${topAskClusters.map(a => `价格 ${a.price.toFixed(2)} : 数量 ${a.qty.toFixed
             const cryptoIndices = selectedCoins.filter(i => COINS[i].name !== 'IXIC');
             
             if (cryptoIndices.length === 0) {
-                document.getElementById('aiContent').innerHTML = '⚠️ 请至少选择一个加密币种 (BTC/ETH/SOL/BNB) 查看支撑压力。';
+                document.getElementById('aiContent').innerHTML = '⚠️ 请至少选择一个加密币种 (BTC/ETH/SOL/BNB) 查看清算区。';
                 return;
             }
 
-            document.getElementById('aiContent').innerHTML = '📊 正在计算支撑/压力位...';
+            document.getElementById('aiContent').innerHTML = '📊 正在计算清算区...';
 
             let successCount = 0;
             let failCount = 0;
@@ -1676,7 +1674,6 @@ ${topAskClusters.map(a => `价格 ${a.price.toFixed(2)} : 数量 ${a.qty.toFixed
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     const depth = await res.json();
                     
-                    // 获取当前价格用于阈值计算
                     let currentPrice = getCoinPrice(coin);
                     if (!currentPrice) {
                         const price = await fetchCryptoPrice(symbol);
@@ -1688,13 +1685,12 @@ ${topAskClusters.map(a => `价格 ${a.price.toFixed(2)} : 数量 ${a.qty.toFixed
                     const asks = depth.asks.map(a => ({ price: parseFloat(a[0]), qty: parseFloat(a[1]) }));
 
                     const srText = findSupportResistance(bids, asks, currentPrice);
-                    supportResistanceData[coin.name] = srText;
+                    liquidationZoneData[coin.name] = srText;
                     successCount++;
                 } catch (error) {
-                    console.error(`获取${coin.name}支撑压力失败:`, error);
-                    // 保留原有数据，如果没有则置为获取失败
-                    if (!supportResistanceData[coin.name]) {
-                        supportResistanceData[coin.name] = '支撑/压力: 获取失败';
+                    console.error(`获取${coin.name}清算区失败:`, error);
+                    if (!liquidationZoneData[coin.name]) {
+                        liquidationZoneData[coin.name] = '清算区: 获取失败';
                     }
                     failCount++;
                 }
@@ -1709,11 +1705,83 @@ ${topAskClusters.map(a => `价格 ${a.price.toFixed(2)} : 数量 ${a.qty.toFixed
             }
         }
 
+        // ========== 新增：识别1小时K线谐波形态 ==========
+        async function identifyPatterns() {
+            const aiContent = document.getElementById('aiContent');
+            
+            const cryptoIndices = selectedCoins.filter(i => COINS[i].name !== 'IXIC');
+            if (cryptoIndices.length === 0) {
+                aiContent.innerHTML = '⚠️ 请至少选择一个加密币种 (BTC/ETH/SOL/BNB) 进行形态识别。';
+                return;
+            }
+
+            aiContent.innerHTML = `🔍 正在获取1小时K线数据，识别谐波形态...`;
+
+            let analyses = [];
+
+            for (let i = 0; i < cryptoIndices.length; i++) {
+                const coinIndex = cryptoIndices[i];
+                const coin = COINS[coinIndex];
+                const symbol = coin.symbol;
+
+                aiContent.innerHTML = `🔍 [${i+1}/${cryptoIndices.length}] 正在分析 ${coin.name} 1H K线...`;
+
+                try {
+                    // 获取最近100根1小时K线
+                    const klineUrl = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=100`;
+                    const response = await fetch(klineUrl);
+                    if (!response.ok) throw new Error(`${coin.name} K线数据获取失败`);
+                    const data = await response.json();
+
+                    // 提取收盘价序列
+                    const closes = data.map(k => parseFloat(k[4])); // 收盘价
+                    
+                    // 也可以提取OHLC用于更精细分析，但提示词限制，先传收盘价
+                    const pricesStr = closes.map(p => p.toFixed(2)).join(', ');
+
+                    const prompt = `你是一位精通谐波交易的技术分析师。以下是 ${coin.name} 最近100根1小时K线的收盘价数据（按时间顺序从旧到新）：\n[${pricesStr}]\n\n请分析这些数据，识别其中是否形成了看涨或看跌的**加特利、蝙蝠、蝴蝶或螃蟹形态**。如果识别出形态，请告诉我：
+1. 该形态的类型和方向（例如“看涨加特利”）。
+2. 在图表上的五个关键点 (X, A, B, C, D) 的**大致价格位置**（可以估算）。
+3. 根据该形态的理论，潜在的**反转区域（PRZ）** 在哪里？
+4. 给出对该形态有效性的简要评估（例如是否满足斐波那契比例，是否接近完成）。
+
+如果没有明显形态，请简要描述当前可能的趋势或整理状态。`;
+
+                    const analysis = await callDeepSeekAPI(prompt);
+                    
+                    analyses.push({
+                        coinName: coin.name,
+                        color: coin.color,
+                        content: analysis
+                    });
+
+                } catch (error) {
+                    console.error(`${coin.name}形态识别失败:`, error);
+                    analyses.push({
+                        coinName: coin.name,
+                        color: coin.color,
+                        content: `❌ 分析失败: ${error.message}`
+                    });
+                }
+            }
+
+            // 汇总输出
+            let finalReport = '';
+            for (let item of analyses) {
+                finalReport += `━━━━━━━━━━━━━━━━━━━━\n`;
+                finalReport += `<span style="color:${item.color}; font-size:1.1em; font-weight:bold;">🔍 ${item.coinName} 1H谐波形态</span>\n`;
+                finalReport += `${item.content}\n\n`;
+            }
+            
+            aiContent.innerHTML = finalReport.replace(/\n/g, '<br>');
+        }
+
         // 绑定按钮事件
         document.getElementById('analyzeBtn').onclick = analyzeAll;
         document.getElementById('kline6hSimpleBtn').onclick = analyze6hSimple;
         document.getElementById('liqAnalysisBtn').onclick = analyzeLiquidation;
         document.getElementById('supportResistanceBtn').onclick = updateSupportResistance;
+        document.getElementById('patternBtn').onclick = identifyPatterns;
 
         window.onload = init;
     </script>
