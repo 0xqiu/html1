@@ -5,16 +5,724 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>🚀 强弱对比 · 多VS对比</title>
     <style>
-        /* 样式与您之前的一致，省略以节省空间，实际使用时请保留原样 */
-        /* ... 完整样式见您之前提供的代码 ... */
+        /* ===== 响应式设计 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', '微软雅黑', Roboto, sans-serif;
+            background: #0B0E14;
+            color: #FFFFFF;
+            min-height: 100vh;
+            padding: 12px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .card {
+            background: #1A1E26;
+            border: 1px solid #2D3748;
+            border-radius: 24px;
+            padding: 16px;
+        }
+
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .title {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #1E2430;
+            padding: 6px 16px;
+            border-radius: 40px;
+            border: 1px solid #2D3748;
+            font-size: 14px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #10B981;
+            box-shadow: 0 0 10px #10B981;
+        }
+
+        .dot.stop {
+            background: #EF4444;
+            box-shadow: 0 0 10px #EF4444;
+        }
+
+        /* 多VS对比区域 */
+        .diff-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .diff-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #94A3B8;
+        }
+
+        .diff-rate {
+            background: #1E2430;
+            padding: 4px 14px;
+            border-radius: 30px;
+            font-size: 13px;
+            color: #94A3B8;
+        }
+
+        .diff-coins {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .coin-block {
+            flex: 1;
+            min-width: 140px;
+            text-align: center;
+            padding: 8px;
+        }
+
+        .coin-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .coin-logo {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .coin-symbol {
+            font-size: 24px;
+            font-weight: 800;
+        }
+
+        .coin-price {
+            font-size: 26px;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 4px;
+        }
+
+        .coin-base {
+            font-size: 12px;
+            color: #94A3B8;
+            margin-bottom: 6px;
+        }
+
+        .coin-sr {
+            font-size: 12px;
+            color: #F59E0B;
+            margin-top: 4px;
+        }
+
+        .coin-change {
+            font-size: 16px;
+            font-weight: 700;
+            padding: 6px 0;
+            border-radius: 40px;
+            display: inline-block;
+            width: 110px;
+        }
+
+        .vs-badge {
+            font-size: 24px;
+            font-weight: 800;
+            color: #64748B;
+        }
+
+        .conclusion {
+            background: #3B82F6;
+            border-radius: 40px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .conclusion-text {
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        /* 开始按钮 */
+        .start-button {
+            background: #10B981;
+            color: white;
+            border: none;
+            padding: 10px 28px;
+            border-radius: 40px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(16,185,129,0.3);
+        }
+
+        .start-button.stop {
+            background: #EF4444;
+            box-shadow: 0 4px 12px rgba(239,68,68,0.3);
+        }
+
+        .start-button:hover {
+            transform: scale(1.02);
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin: 5px 0;
+        }
+
+        .selector-group {
+            margin-bottom: 12px;
+        }
+
+        .selector-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .selector-label-text {
+            font-size: 15px;
+            font-weight: 600;
+            color: #FFFFFF;
+        }
+
+        .selector-hint {
+            font-size: 13px;
+            color: #94A3B8;
+        }
+
+        .coin-scroll {
+            display: flex;
+            overflow-x: auto;
+            gap: 8px;
+            padding-bottom: 4px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .coin-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        @media (min-width: 768px) {
+            .coin-scroll {
+                flex-wrap: wrap;
+                overflow-x: visible;
+            }
+        }
+
+        .coin-btn {
+            flex: 0 0 auto;
+            padding: 10px 24px;
+            border-radius: 40px;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            background: #1E2430;
+            color: #94A3B8;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .coin-btn.selected {
+            color: white;
+        }
+
+        .coin-btn.btc.selected {
+            background: #F7931A;
+        }
+
+        .coin-btn.eth.selected {
+            background: #627EEA;
+        }
+
+        .coin-btn.sol.selected {
+            background: #9945FF;
+        }
+
+        .coin-btn.bnb.selected {
+            background: #F3BA2F;
+            color: black;
+        }
+
+        .coin-btn.nasdaq.selected {
+            background: #00FF9D;
+            color: black;
+        }
+
+        /* 频率控制区域 - 紧凑布局 */
+        .freq-panel {
+            background: #1A1E26;
+            border: 1px solid #2D3748;
+            border-radius: 24px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .freq-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .freq-item {
+            flex: 1 1 200px;
+        }
+
+        .freq-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .freq-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #3B82F6;
+        }
+
+        .freq-value {
+            font-size: 13px;
+            color: #94A3B8;
+        }
+
+        .freq-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .freq-btn {
+            padding: 6px 14px;
+            border-radius: 30px;
+            border: none;
+            font-size: 12px;
+            background: #1E2430;
+            color: white;
+            cursor: pointer;
+            flex: 0 0 auto;
+        }
+
+        .freq-btn.active {
+            background: #00FF9D;
+            color: black;
+            font-weight: bold;
+        }
+
+        .freq-note {
+            font-size: 11px;
+            color: #F59E0B;
+        }
+
+        /* 近期记录卡片 */
+        .records-card {
+            background: #1A1E26;
+            border: 1px solid #2D3748;
+            border-radius: 24px;
+            padding: 16px;
+        }
+
+        .records-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .records-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .records-time {
+            font-size: 14px;
+            color: #94A3B8;
+        }
+
+        /* 手机卡片记录样式 */
+        .mobile-records {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .record-item {
+            background: #1E2430;
+            border-radius: 18px;
+            padding: 16px;
+        }
+
+        .record-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2D3748;
+        }
+
+        .record-pair {
+            font-size: 16px;
+            font-weight: 700;
+            color: #94A3B8;
+        }
+
+        .record-time-small {
+            font-size: 13px;
+            color: #94A3B8;
+        }
+
+        .record-detail {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .record-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+        }
+
+        .record-coin-name {
+            font-size: 16px;
+            font-weight: 600;
+            width: 60px;
+        }
+
+        .record-coin-price {
+            font-size: 16px;
+            font-weight: 500;
+            flex: 1;
+            text-align: right;
+            padding-right: 20px;
+        }
+
+        .record-coin-change {
+            font-size: 16px;
+            font-weight: 600;
+            width: 80px;
+            text-align: right;
+        }
+
+        /* 桌面表格 - 优化，一行展示所有币种，无冗余 */
+        .desktop-records {
+            display: none;
+        }
+
+        @media (min-width: 1024px) {
+            .mobile-records {
+                display: none;
+            }
+            .desktop-records {
+                display: block;
+                overflow-x: auto;
+            }
+            .records-table {
+                min-width: 100%;
+                font-family: 'Courier New', monospace;
+                font-size: 14px;
+            }
+            .table-row {
+                display: flex;
+                padding: 10px 16px;
+                border-bottom: 1px solid #2D3748;
+                gap: 8px;
+            }
+            .table-header {
+                color: #94A3B8;
+                font-weight: 600;
+            }
+            .col-time {
+                width: 80px;
+                flex-shrink: 0;
+            }
+            .coin-cell {
+                flex: 1;
+                min-width: 120px;
+                text-align: center;
+            }
+            .coin-header {
+                font-weight: 600;
+                color: #FFFFFF;
+            }
+            .coin-price {
+                font-size: 14px;
+                color: #FFFFFF;
+            }
+            .coin-change {
+                font-size: 13px;
+            }
+        }
+
+        .ai-card {
+            background: #1A1E26;
+            border: 1px solid #2D3748;
+            border-radius: 24px;
+            padding: 16px;
+        }
+
+        .ai-header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .ai-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ai-icon {
+            font-size: 24px;
+        }
+
+        .ai-title-text {
+            font-size: 18px;
+            font-weight: 700;
+            color: #4F46E5;
+        }
+
+        .ai-btn {
+            background: #4F46E5;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .ai-btn.orange {
+            background: #F59E0B;
+        }
+
+        .ai-btn.purple {
+            background: #9945FF;
+        }
+
+        .ai-btn.green {
+            background: #10B981;
+        }
+
+        .ai-btn.orange:hover {
+            background: #D97706;
+        }
+
+        .ai-btn:hover {
+            background: #4338CA;
+        }
+
+        .ai-btn.purple:hover {
+            background: #7A3BCC;
+        }
+
+        .ai-btn.green:hover {
+            background: #059669;
+        }
+
+        .ai-content {
+            background: #1E2430;
+            border-radius: 16px;
+            padding: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .up {
+            color: #10B981;
+        }
+
+        .down {
+            color: #EF4444;
+        }
+
+        .equal {
+            color: #94A3B8;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: #64748B;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .price-loading {
+            color: #64748B;
+            font-size: 14px;
+            text-align: center;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- 头部、实时对比卡片、开始按钮、币种选择、频率控制、近期记录等部分与之前完全相同 -->
-        <!-- ... 完整HTML结构见您之前提供的代码 ... -->
+        <div class="header">
+            <span class="title">⚡ 强弱对比 · 多VS对比</span>
+            <div class="status-badge">
+                <span class="dot" id="statusDot"></span>
+                <span id="statusText">已选 2/4 币种</span>
+            </div>
+        </div>
 
-        <!-- AI分析卡片（按钮部分已包含支撑压力按钮） -->
+        <!-- 实时对比卡片 - 多VS布局 -->
+        <div class="card">
+            <div class="diff-header">
+                <span class="diff-title">🔥 实时涨跌对比 · 多VS对比</span>
+                <span class="diff-rate" id="refreshRateText">⚡ 待启动</span>
+            </div>
+
+            <div class="diff-coins" id="vsContainer">
+                <div class="price-loading">请点击下方开始按钮启动数据</div>
+            </div>
+
+            <div class="conclusion" id="conclusionContainer" style="background: #3B82F6;">
+                <span class="conclusion-text" id="conclusionText">请点击开始按钮</span>
+            </div>
+        </div>
+
+        <!-- 开始按钮 -->
+        <div class="button-container">
+            <button class="start-button" id="startButton" onclick="toggleStart()">▶ 开始实时数据</button>
+        </div>
+
+        <!-- 币种选择 -->
+        <div class="card">
+            <div class="selector-group">
+                <div class="selector-label">
+                    <span class="selector-label-text">🎯 选择对比币种 (最多选4个)</span>
+                    <span class="selector-hint" id="selectedCountHint">已选 2/4</span>
+                </div>
+                <div class="coin-scroll" id="coinButtons"></div>
+            </div>
+        </div>
+
+        <!-- 频率控制区域 (紧凑) -->
+        <div class="freq-panel">
+            <div class="freq-row">
+                <div class="freq-item">
+                    <div class="freq-header">
+                        <span class="freq-title">⚡ 加密货币刷新</span>
+                        <span class="freq-value" id="cryptoFreqValue">1秒</span>
+                    </div>
+                    <div class="freq-grid" id="cryptoRefreshButtons">
+                        <button class="freq-btn active" onclick="setCryptoInterval(1, event)">1秒</button>
+                        <button class="freq-btn" onclick="setCryptoInterval(3, event)">3秒</button>
+                        <button class="freq-btn" onclick="setCryptoInterval(5, event)">5秒</button>
+                    </div>
+                    <div class="freq-note">加密货币无限制</div>
+                </div>
+                <div class="freq-item" id="nasdaqFreqContainer">
+                    <div class="freq-header">
+                        <span class="freq-title">📊 纳斯达克刷新</span>
+                        <span class="freq-value" id="nasdaqFreqValue">6秒</span>
+                    </div>
+                    <div class="freq-grid" id="nasdaqRefreshButtons">
+                        <button class="freq-btn active" onclick="setNasdaqInterval(6, event)">6秒</button>
+                        <button class="freq-btn" onclick="setNasdaqInterval(10, event)">10秒</button>
+                        <button class="freq-btn" onclick="setNasdaqInterval(15, event)">15秒</button>
+                        <button class="freq-btn" onclick="setNasdaqInterval(30, event)">30秒</button>
+                        <button class="freq-btn" onclick="setNasdaqInterval(60, event)">60秒</button>
+                    </div>
+                    <div class="freq-note" id="nasdaqFreqNote">10次/分钟限制</div>
+                </div>
+            </div>
+            <div class="freq-row">
+                <div class="freq-item">
+                    <div class="freq-header">
+                        <span class="freq-title">📝 记录频率</span>
+                        <span class="freq-value" id="recordFreqValue">10秒</span>
+                    </div>
+                    <div class="freq-grid" id="recordRefreshButtons">
+                        <button class="freq-btn" onclick="setRecordInterval(5, event)">5秒</button>
+                        <button class="freq-btn active" onclick="setRecordInterval(10, event)">10秒</button>
+                        <button class="freq-btn" onclick="setRecordInterval(30, event)">30秒</button>
+                        <button class="freq-btn" onclick="setRecordInterval(60, event)">1分</button>
+                        <button class="freq-btn" onclick="setRecordInterval(300, event)">5分</button>
+                    </div>
+                    <div class="freq-note">历史记录保存频率</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 近期记录 -->
+        <div class="records-card">
+            <div class="records-header">
+                <span class="records-title">📋 近期价格记录 (最多5条)</span>
+                <span class="records-time" id="currentTime">⏱️ --:--:--</span>
+            </div>
+
+            <!-- 移动端卡片记录 -->
+            <div id="mobileRecords" class="mobile-records">
+                <div class="empty-state">⏳ 等待数据...</div>
+            </div>
+
+            <!-- 桌面端表格记录 (已修复错位) -->
+            <div id="desktopRecords" class="desktop-records">
+                <div class="records-table" id="recordsTable"></div>
+            </div>
+        </div>
+
+        <!-- AI分析 -->
         <div class="ai-card">
             <div class="ai-header">
                 <div class="ai-title">
@@ -29,12 +737,12 @@
                 </div>
             </div>
             <div class="ai-content" id="aiContent">
-                🤖 DeepSeek AI · 4小时K线强弱对比<br>
-                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>
-                ✅ 实时差值：谁比谁多涨？每秒更新<br>
-                ✅ 21项技术指标 | 综合评分 | 支撑阻力<br>
-                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>
-                点击「🚀 深度分析」获取完整对比报告
+🤖 DeepSeek AI · 4小时K线强弱对比<br>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>
+✅ 实时差值：谁比谁多涨？每秒更新<br>
+✅ 21项技术指标 | 综合评分 | 支撑阻力<br>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>
+点击「🚀 深度分析」获取完整对比报告
             </div>
         </div>
     </div>
@@ -71,7 +779,7 @@
         let nasdaqLoopTimer = null;
         let recordLoopTimer = null;
 
-        // 新增：存储每个币种的支撑压力位数据
+        // 存储每个币种的支撑压力位数据
         let supportResistanceData = {}; // 格式: { "BTC": "支撑: 68420.00 / 压力: 68450.00", ... }
 
         // ========== 初始化 ==========
@@ -116,9 +824,10 @@
                 }
             }
 
-            createCoinButtons();
-            // 切换币种时清空之前的支撑压力数据，因为它们可能不再对应
+            // 切换币种时清空之前的支撑压力数据（不同币种的数据不通用）
             supportResistanceData = {};
+
+            createCoinButtons();
             renderVS();
             updateNasdaqVisibility();
 
@@ -127,7 +836,7 @@
             }
         }
 
-        // ========== 渲染VS对比区域（修改版：读取支撑压力数据） ==========
+        // ========== 渲染VS对比区域 ==========
         function renderVS() {
             const container = document.getElementById('vsContainer');
 
@@ -897,7 +1606,7 @@ ${topAskClusters.map(a => `价格 ${a.price.toFixed(2)} : 数量 ${a.qty.toFixed
             aiContent.innerHTML = finalReport.replace(/\n/g, '<br>');
         }
 
-        // ========== 修复版：获取支撑压力位（买一/卖一）并更新到币种下方，数据存入supportResistanceData ==========
+        // ========== 支撑压力位：获取订单簿前500档，更新数据且不随价格刷新消失 ==========
         async function updateSupportResistance() {
             const cryptoIndices = selectedCoins.filter(i => COINS[i].name !== 'IXIC');
             
@@ -906,52 +1615,47 @@ ${topAskClusters.map(a => `价格 ${a.price.toFixed(2)} : 数量 ${a.qty.toFixed
                 return;
             }
 
-            // 显示提示信息（可选）
             document.getElementById('aiContent').innerHTML = '📊 正在获取支撑/压力位...';
 
-            // 临时存储本次获取的数据
-            let newData = {};
+            let successCount = 0;
+            let failCount = 0;
 
             for (let index of cryptoIndices) {
                 const coin = COINS[index];
                 const symbol = coin.symbol;
                 try {
-                    // 获取深度数据（前500档，满足用户要求）
                     const depthUrl = `https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=500`;
                     const res = await fetch(depthUrl);
-                    if (!res.ok) {
-                        console.error(`${coin.name}深度请求失败: ${res.status}`);
-                        continue;
-                    }
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     const depth = await res.json();
                     
-                    // 买一价（最高买价）作为支撑，卖一价（最低卖价）作为压力
                     const bidPrice = depth.bids[0] ? parseFloat(depth.bids[0][0]) : null;
                     const askPrice = depth.asks[0] ? parseFloat(depth.asks[0][0]) : null;
                     
                     if (bidPrice && askPrice) {
-                        newData[coin.name] = `支撑: ${bidPrice.toFixed(2)} / 压力: ${askPrice.toFixed(2)}`;
+                        supportResistanceData[coin.name] = `支撑: ${bidPrice.toFixed(2)} / 压力: ${askPrice.toFixed(2)}`;
+                        successCount++;
                     } else {
-                        newData[coin.name] = '支撑/压力: 暂无数据';
+                        // 如果数据异常，保留原有数据或设为暂无数据
+                        supportResistanceData[coin.name] = '支撑/压力: 暂无数据';
+                        failCount++;
                     }
                 } catch (error) {
                     console.error(`获取${coin.name}支撑压力失败:`, error);
-                    newData[coin.name] = '支撑/压力: 获取失败';
+                    // 保留原有数据，如果之前有则不变，否则设为失败提示
+                    if (!supportResistanceData[coin.name]) {
+                        supportResistanceData[coin.name] = '支撑/压力: 获取失败';
+                    }
+                    failCount++;
                 }
             }
 
-            // 更新全局变量
-            supportResistanceData = newData;
-
-            // 重新渲染VS区域，使新的支撑压力数据显示出来
             renderVS();
 
-            // 更新提示信息
-            const count = Object.keys(newData).length;
-            if (count > 0) {
-                document.getElementById('aiContent').innerHTML = `✅ 已更新 ${count} 个币种的支撑/压力位。`;
+            if (successCount > 0) {
+                document.getElementById('aiContent').innerHTML = `✅ 更新成功：${successCount} 个币种，失败：${failCount} 个。`;
             } else {
-                document.getElementById('aiContent').innerHTML = '❌ 未能获取任何支撑/压力数据，请稍后重试。';
+                document.getElementById('aiContent').innerHTML = '❌ 全部获取失败，请检查网络或稍后重试。';
             }
         }
 
