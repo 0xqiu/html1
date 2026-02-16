@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>🚀 强弱对比 · 多VS对比</title>
     <style>
-        /* ===== 响应式设计 ===== */
+        /* 样式保持不变（与您之前的一致） */
         * {
             margin: 0;
             padding: 0;
@@ -76,7 +76,6 @@
             box-shadow: 0 0 10px #EF4444;
         }
 
-        /* 多VS对比区域 */
         .diff-header {
             display: flex;
             justify-content: space-between;
@@ -181,7 +180,6 @@
             font-weight: 700;
         }
 
-        /* 开始按钮 */
         .start-button {
             background: #10B981;
             color: white;
@@ -291,7 +289,6 @@
             color: black;
         }
 
-        /* 频率控制区域 - 紧凑布局 */
         .freq-panel {
             background: #1A1E26;
             border: 1px solid #2D3748;
@@ -359,7 +356,6 @@
             color: #F59E0B;
         }
 
-        /* 近期记录卡片 */
         .records-card {
             background: #1A1E26;
             border: 1px solid #2D3748;
@@ -385,7 +381,6 @@
             color: #94A3B8;
         }
 
-        /* 手机卡片记录样式 */
         .mobile-records {
             display: flex;
             flex-direction: column;
@@ -451,7 +446,6 @@
             text-align: right;
         }
 
-        /* 桌面表格 - 优化，一行展示所有币种，无冗余 */
         .desktop-records {
             display: none;
         }
@@ -716,7 +710,7 @@
                 <div class="empty-state">⏳ 等待数据...</div>
             </div>
 
-            <!-- 桌面端表格记录 (已修复错位) -->
+            <!-- 桌面端表格记录 -->
             <div id="desktopRecords" class="desktop-records">
                 <div class="records-table" id="recordsTable"></div>
             </div>
@@ -1044,7 +1038,6 @@
 
         // ========== 价格循环 ==========
         function startPriceFetcher() {
-            // 加密货币循环
             async function cryptoLoop() {
                 if (!isRunning) return;
                 for (let index of selectedCoins) {
@@ -1064,7 +1057,6 @@
                 cryptoLoopTimer = setTimeout(cryptoLoop, cryptoInterval * 1000);
             }
 
-            // 纳斯达克循环
             async function nasdaqLoop() {
                 if (!isRunning) return;
                 const price = await fetchNasdaqPrice();
@@ -1078,13 +1070,12 @@
                         }
                     }
                     renderVS();
-                } else if (selectedCoins.some(i => COINS[i].name === 'IXIC') && Date.now() - lastNasdaqUpdate > 300000) {  
+                } else if (selectedCoins.some(i => COINS[i].name === 'IXIC') && Date.now() - lastNasdaqUpdate > 300000) {
                     document.getElementById('conclusionText').textContent = '⚠️ 纳斯达克数据更新延迟，可能市场休市';
                 }
                 nasdaqLoopTimer = setTimeout(nasdaqLoop, nasdaqInterval * 1000);
             }
 
-            // 记录循环 - 相对于上次的涨跌幅
             async function recordLoop() {
                 if (!isRunning) return;
 
@@ -1108,7 +1099,6 @@
                 }
 
                 if (allValid && prices.length === selectedCoins.length) {
-                    // 计算相对于上一次记录的涨跌幅
                     let changes = [];
                     if (historyData.length > 0) {
                         const last = historyData[historyData.length - 1];
@@ -1148,7 +1138,7 @@
             recordLoop();
         }
 
-        // ========== 更新记录显示（修复表格错位） ==========
+        // ========== 更新记录显示 ==========
         function updateRecords() {
             const mobileContainer = document.getElementById('mobileRecords');
             const recordsTable = document.getElementById('recordsTable');
@@ -1159,7 +1149,6 @@
                 return;
             }
 
-            // 手机卡片 - 保持不变
             let mobileHtml = '';
             historyData.slice().reverse().forEach(data => {
                 const timeStr = data.time.toLocaleTimeString();
@@ -1192,9 +1181,7 @@
 
             mobileContainer.innerHTML = mobileHtml;
 
-            // 桌面表格 - 修复版，无冗余
             if (recordsTable) {
-                // 表头：时间 + 每个币种名称（使用币种颜色）
                 let headerHtml = '<div class="table-row table-header">' +
                     '<span class="col-time">时间</span>';
                 for (let i = 0; i < selectedCoins.length; i++) {
@@ -1203,7 +1190,6 @@
                 }
                 headerHtml += '</div>';
 
-                // 数据行
                 let rowsHtml = '';
                 historyData.slice().reverse().forEach(data => {
                     let rowHtml = `<span class="col-time">${data.time.toLocaleTimeString()}</span>`;
@@ -1247,7 +1233,6 @@
             
             aiContent.innerHTML = '🧠 DeepSeek AI 正在深度分析中...';
             
-            // 1. 收集所有币种的详细数据
             let coinDetails = [];
             let totalChange = 0;
             selectedCoins.forEach(index => {
@@ -1256,7 +1241,6 @@
                 const base = basePrices[coin.symbol] || price;
                 const change4h = base ? ((price - base) / base * 100) : 0;
                 
-                // 从历史记录中提取该币种最近的涨跌幅序列（最多3次）
                 let recentChanges = [];
                 for (let i = historyData.length - 1; i >= Math.max(0, historyData.length-3); i--) {
                     const record = historyData[i];
@@ -1279,19 +1263,14 @@
                 totalChange += change4h;
             });
             
-            // 2. 计算组合指标
             const avgChange = (totalChange / selectedCoins.length).toFixed(2);
             const maxChangeCoin = coinDetails.reduce((a, b) => parseFloat(a.change4h) > parseFloat(b.change4h) ? a : b);
             const minChangeCoin = coinDetails.reduce((a, b) => parseFloat(a.change4h) < parseFloat(b.change4h) ? a : b);
             const spread = (parseFloat(maxChangeCoin.change4h) - parseFloat(minChangeCoin.change4h)).toFixed(2);
             
-            // 3. 构建高级提示词
             const prompt = buildAdvancedPrompt(coinDetails, { avgChange, maxChangeCoin, minChangeCoin, spread });
-            
-            // 4. 调用DeepSeek API
             const analysis = await callDeepSeekAPI(prompt);
             
-            // 5. 格式化输出（添加颜色标记）
             let formattedAnalysis = analysis
                 .replace(/(比特币|BTC|eth|ETH|sol|SOL|bnb|BNB|ixic|IXIC|纳斯达克)/g, match => {
                     const coin = coinDetails.find(c => c.name === match.toUpperCase());
@@ -1305,7 +1284,6 @@
             aiContent.innerHTML = formattedAnalysis.replace(/\n/g, '<br>');
         }
 
-        // 构建高级提示词
         function buildAdvancedPrompt(coinDetails, meta) {
             let prompt = `你是一位顶级的加密货币交易员。请基于以下真实市场数据，对 ${coinDetails.map(c => c.name).join('/')} 进行**实质性技术分析**，给出可执行的交易建议。\n\n`;
             
@@ -1334,7 +1312,6 @@
             return prompt;
         }
 
-        // 调用DeepSeek API
         async function callDeepSeekAPI(prompt) {
             const apiKey = 'sk-b43ec0ccfb174cf1a172cd8687a1400b';
             
@@ -1369,7 +1346,7 @@
             }
         }
 
-        // ========== 6小时涨跌幅简洁对比（优化表达） ==========
+        // ========== 6小时涨跌幅简洁对比 ==========
         async function analyze6hSimple() {
             const aiContent = document.getElementById('aiContent');
             
@@ -1382,7 +1359,6 @@
             
             let results = [];
             
-            // 逐个获取每个币种的6小时涨跌幅
             for (let index of selectedCoins) {
                 const coin = COINS[index];
                 
@@ -1390,7 +1366,6 @@
                     let change6h = null;
                     
                     if (coin.symbol === 'nasdaq') {
-                        // 纳斯达克：使用基准价近似（从启动至今）
                         const currentPrice = getCoinPrice(coin);
                         const basePrice = basePrices[coin.symbol];
                         
@@ -1405,7 +1380,6 @@
                             continue;
                         }
                     } else {
-                        // 加密货币：使用币安6小时K线
                         const url = `https://api.binance.com/api/v3/klines?symbol=${coin.symbol}&interval=6h&limit=1`;
                         const response = await fetch(url);
                         
@@ -1450,7 +1424,6 @@
                 }
             }
             
-            // 生成简洁的文本报告
             let report = '📈 **最近6小时涨跌幅对比**\n';
             report += '━━━━━━━━━━━━━━━━━━━━\n\n';
             
@@ -1619,14 +1592,20 @@ ${topAskClusters.map(a => `价格 ${a.price.toFixed(2)} : 数量 ${a.qty.toFixed
             aiContent.innerHTML = finalReport.replace(/\n/g, '<br>');
         }
 
-        // ========== 新增：获取支撑压力位（买一/卖一）并更新到币种下方 ==========
+        // ========== 修复版：获取支撑压力位（买一/卖一）并更新到币种下方 ==========
         async function updateSupportResistance() {
+            const aiContent = document.getElementById('aiContent');
             const cryptoIndices = selectedCoins.filter(i => COINS[i].name !== 'IXIC');
+            
             if (cryptoIndices.length === 0) {
-                alert('请至少选择一个加密币种');
+                aiContent.innerHTML = '⚠️ 请至少选择一个加密币种 (BTC/ETH/SOL/BNB) 查看支撑压力。';
                 return;
             }
 
+            // 显示提示信息
+            aiContent.innerHTML = '📊 正在获取支撑/压力位...';
+
+            let successCount = 0;
             for (let index of cryptoIndices) {
                 const coin = COINS[index];
                 const symbol = coin.symbol;
@@ -1634,7 +1613,10 @@ ${topAskClusters.map(a => `价格 ${a.price.toFixed(2)} : 数量 ${a.qty.toFixed
                     // 获取深度数据（前5档足够）
                     const depthUrl = `https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=5`;
                     const res = await fetch(depthUrl);
-                    if (!res.ok) continue;
+                    if (!res.ok) {
+                        console.error(`${coin.name}深度请求失败: ${res.status}`);
+                        continue;
+                    }
                     const depth = await res.json();
                     
                     // 买一价（最高买价）作为支撑，卖一价（最低卖价）作为压力
@@ -1645,13 +1627,26 @@ ${topAskClusters.map(a => `价格 ${a.price.toFixed(2)} : 数量 ${a.qty.toFixed
                     if (srElement) {
                         if (bidPrice && askPrice) {
                             srElement.innerHTML = `支撑: ${bidPrice.toFixed(2)} / 压力: ${askPrice.toFixed(2)}`;
+                            successCount++;
                         } else {
                             srElement.innerHTML = '支撑/压力: 暂无数据';
                         }
+                    } else {
+                        console.warn(`未找到元素 sr-${coin.name}`);
                     }
                 } catch (error) {
                     console.error(`获取${coin.name}支撑压力失败:`, error);
+                    const srElement = document.getElementById(`sr-${coin.name}`);
+                    if (srElement) {
+                        srElement.innerHTML = '支撑/压力: 获取失败';
+                    }
                 }
+            }
+
+            if (successCount > 0) {
+                aiContent.innerHTML = `✅ 已更新 ${successCount} 个币种的支撑/压力位。`;
+            } else {
+                aiContent.innerHTML = '❌ 未能获取任何支撑/压力数据，请稍后重试。';
             }
         }
 
