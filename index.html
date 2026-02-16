@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>🚀 强弱对比 · 多VS对比</title>
     <style>
-        /* ===== 响应式设计 ===== */
+        /* 样式与您之前保持一致（此处省略以节省篇幅，实际使用时请保留原样式） */
         * {
             margin: 0;
             padding: 0;
@@ -779,8 +779,8 @@
         let nasdaqLoopTimer = null;
         let recordLoopTimer = null;
 
-        // 存储每个币种的支撑压力位数据
-        let supportResistanceData = {}; // 格式: { "BTC": "支撑: 68420.00 / 压力: 68450.00", ... }
+        // 存储每个币种的支撑压力位数据（改进后存储聚合区间字符串）
+        let supportResistanceData = {}; // 格式: { "BTC": "支撑区: 68250-68300,68350-68380 / 压力区: 68450-68500,68600-68650", ... }
 
         // ========== 初始化 ==========
         function init() {
@@ -1606,7 +1606,54 @@ ${topAskClusters.map(a => `价格 ${a.price.toFixed(2)} : 数量 ${a.qty.toFixed
             aiContent.innerHTML = finalReport.replace(/\n/g, '<br>');
         }
 
-        // ========== 支撑压力位：获取订单簿前500档，更新数据且不随价格刷新消失 ==========
+        // ========== 改进的支撑压力计算：基于500档订单簿挂单量聚合区间 ==========
+        function findSupportResistance(bids, asks, currentPrice) {
+            // 按价格聚合区间，阈值设为当前价格的0.1%
+            const threshold = currentPrice * 0.001; // 0.1%
+
+            // 聚合买单（支撑区）
+            const aggregate = (orders, descending = true) => {
+                if (orders.length === 0) return [];
+                // 按价格排序
+                const sorted = [...orders].sort((a, b) => descending ? b.price - a.price : a.price - b.price);
+                const ranges = [];
+                let currentRange = {
+                    minPrice: sorted[0].price,
+                    maxPrice: sorted[0].price,
+                    totalQty: sorted[0].qty
+                };
+                for (let i = 1; i < sorted.length; i++) {
+                    const order = sorted[i];
+                    // 如果价格差距小于阈值，合并
+                    if (Math.abs(order.price - currentRange.maxPrice) <= threshold) {
+                        currentRange.maxPrice = Math.max(currentRange.maxPrice, order.price);
+                        currentRange.minPrice = Math.min(currentRange.minPrice, order.price);
+                        currentRange.totalQty += order.qty;
+                    } else {
+                        ranges.push(currentRange);
+                        currentRange = {
+                            minPrice: order.price,
+                            maxPrice: order.price,
+                            totalQty: order.qty
+                        };
+                    }
+                }
+                ranges.push(currentRange);
+                // 按挂单量排序取前3
+                return ranges.sort((a, b) => b.totalQty - a.totalQty).slice(0, 3);
+            };
+
+            const supportRanges = aggregate(bids, true);
+            const resistanceRanges = aggregate(asks, false);
+
+            // 格式化输出
+            const formatRange = (r) => `${r.minPrice.toFixed(2)}-${r.maxPrice.toFixed(2)}`;
+            const supportStr = supportRanges.map(formatRange).join(', ');
+            const resistanceStr = resistanceRanges.map(formatRange).join(', ');
+            return `支撑区: ${supportStr || '无'} / 压力区: ${resistanceStr || '无'}`;
+        }
+
+        // ========== 更新支撑压力位（改进版） ==========
         async function updateSupportResistance() {
             const cryptoIndices = selectedCoins.filter(i => COINS[i].name !== 'IXIC');
             
@@ -1615,7 +1662,7 @@ ${topAskClusters.map(a => `价格 ${a.price.toFixed(2)} : 数量 ${a.qty.toFixed
                 return;
             }
 
-            document.getElementById('aiContent').innerHTML = '📊 正在获取支撑/压力位...';
+            document.getElementById('aiContent').innerHTML = '📊 正在计算支撑/压力位...';
 
             let successCount = 0;
             let failCount = 0;
@@ -1629,20 +1676,23 @@ ${topAskClusters.map(a => `价格 ${a.price.toFixed(2)} : 数量 ${a.qty.toFixed
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     const depth = await res.json();
                     
-                    const bidPrice = depth.bids[0] ? parseFloat(depth.bids[0][0]) : null;
-                    const askPrice = depth.asks[0] ? parseFloat(depth.asks[0][0]) : null;
-                    
-                    if (bidPrice && askPrice) {
-                        supportResistanceData[coin.name] = `支撑: ${bidPrice.toFixed(2)} / 压力: ${askPrice.toFixed(2)}`;
-                        successCount++;
-                    } else {
-                        // 如果数据异常，保留原有数据或设为暂无数据
-                        supportResistanceData[coin.name] = '支撑/压力: 暂无数据';
-                        failCount++;
+                    // 获取当前价格用于阈值计算
+                    let currentPrice = getCoinPrice(coin);
+                    if (!currentPrice) {
+                        const price = await fetchCryptoPrice(symbol);
+                        if (price) currentPrice = price;
                     }
+                    if (!currentPrice) throw new Error('无法获取当前价格');
+
+                    const bids = depth.bids.map(b => ({ price: parseFloat(b[0]), qty: parseFloat(b[1]) }));
+                    const asks = depth.asks.map(a => ({ price: parseFloat(a[0]), qty: parseFloat(a[1]) }));
+
+                    const srText = findSupportResistance(bids, asks, currentPrice);
+                    supportResistanceData[coin.name] = srText;
+                    successCount++;
                 } catch (error) {
                     console.error(`获取${coin.name}支撑压力失败:`, error);
-                    // 保留原有数据，如果之前有则不变，否则设为失败提示
+                    // 保留原有数据，如果没有则置为获取失败
                     if (!supportResistanceData[coin.name]) {
                         supportResistanceData[coin.name] = '支撑/压力: 获取失败';
                     }
