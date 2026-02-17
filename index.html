@@ -806,34 +806,55 @@
             // 启动持仓量更新（每60秒）
             setInterval(fetchAllOpenInterest, 60000);
         }
-
-        // ========== 获取所有选中币种的持仓量 ==========
+        // ========== 获取所有选中币种的持仓量（含涨跌幅） ==========
         async function fetchAllOpenInterest() {
             const cryptoIndices = selectedCoins.filter(i => COINS[i].name !== 'IXIC');
             for (let index of cryptoIndices) {
-                const coin = COINS[index];
-                const symbol = coin.symbol;
-                try {
-                    // 使用币安合约接口获取持仓量
-                    const url = `https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`;
-                    const res = await fetch(url);
-                    if (!res.ok) continue;
-                    const data = await res.json();
-                    // 格式化数值（保留2位小数，超过1000用K表示）
-                    let oi = parseFloat(data.openInterest);
-                    let formattedOI;
-                    if (oi >= 1000) {
-                        formattedOI = (oi / 1000).toFixed(2) + 'K';
-                    } else {
-                        formattedOI = oi.toFixed(2);
-                    }
-                    openInterestData[coin.name] = `📊 持仓: ${formattedOI} ${coin.name}`;
+            const coin = COINS[index];
+            const symbol = coin.symbol;
+            try {
+            // 使用币安合约接口获取持仓量
+            const url = `https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`;
+            const res = await fetch(url);
+            if (!res.ok) continue;
+            const data = await res.json();
+            let oi = parseFloat(data.openInterest);
+            
+            // 格式化数值（保留2位小数，超过1000用K表示）
+            let formattedOI;
+            if (oi >= 1000) {
+                formattedOI = (oi / 1000).toFixed(2) + 'K';
+            } else {
+                formattedOI = oi.toFixed(2);
+            }
+            
+            // 存储原始数值用于计算涨跌幅
+            if (!openInterestData[coin.name]) {
+                // 第一次获取，记录为基准值
+                openInterestData[coin.name] = {
+                    current: oi,
+                    base: oi,
+                    formatted: formattedOI,
+                    change: 0
+                };
+            } else {
+                // 后续更新，计算涨跌幅
+                const base = openInterestData[coin.name].base;
+                const change = ((oi - base) / base) * 100;
+                openInterestData[coin.name] = {
+                    current: oi,
+                    base: base,
+                    formatted: formattedOI,
+                    change: change
+                };
+            }
                 } catch (error) {
                     console.error(`获取${coin.name}持仓量失败:`, error);
                 }
             }
             renderVS(); // 更新显示
         }
+        
 
         // ========== 创建币种按钮 ==========
         function createCoinButtons() {
@@ -899,9 +920,14 @@
 
                 // 清算区域文本
                 const srText = liquidationZoneData[coin.name] || '清算区: --';
-                // 持仓量文本
-                const oiText = openInterestData[coin.name] || '📊 持仓: --';
-
+                //持仓量
+                const oiData = openInterestData[coin.name];
+                let oiText = '📊 持仓: --';
+                if (oiData) {
+                    const changeClass = oiData.change > 0 ? 'up' : oiData.change < 0 ? 'down' : 'equal';
+                    const changeSign = oiData.change > 0 ? '+' : '';
+                    oiText = `📊 持仓: ${oiData.formatted} ${coin.name} <span class="${changeClass}">${changeSign}${oiData.change.toFixed(2)}%</span>`;
+                }
                 html += `
                     <div class="coin-block">
                         <div class="coin-header">
