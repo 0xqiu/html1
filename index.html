@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>🚀 强弱对比 · 多VS对比</title>
     <style>
-        /* 样式与之前完全相同，此处省略以节省篇幅，实际使用时请保留完整样式 */
-        /* 请复制之前代码中的完整样式部分到这里 */
+        /* ===== 响应式设计 ===== */
         * {
             margin: 0;
             padding: 0;
@@ -817,6 +816,9 @@
         // 存储每个币种的清算区域数据
         let liquidationZoneData = {};
 
+        // 纳斯达克数据获取失败计数
+        let nasdaqFailCount = 0;
+
         // ========== 初始化 ==========
         function init() {
             createCoinButtons();
@@ -1129,6 +1131,7 @@
                 dot.style.background = '#EF4444';
                 stopPriceFetcher();
                 document.getElementById('refreshRateText').innerHTML = '⚡ 已停止';
+                nasdaqFailCount = 0; // 重置失败计数
             } else {
                 isRunning = true;
                 button.innerHTML = '⏸ 停止实时数据';
@@ -1140,6 +1143,10 @@
                 
                 // 启动后立即获取一次市场数据
                 fetchAllMarketData();
+                // 立即获取一次纳斯达克数据（如果选中）
+                if (selectedCoins.some(i => COINS[i].name === 'IXIC')) {
+                    fetchNasdaqPrice(true); // 强制立即获取
+                }
             }
         }
 
@@ -1198,31 +1205,43 @@
             }
         }
 
-        async function fetchNasdaqPrice() {
+        // ========== 获取纳斯达克价格（多代理重试） ==========
+        async function fetchNasdaqPrice(force = false) {
             const now = Date.now();
             const timeSinceLast = (now - lastNasdaqUpdate) / 1000;
-            if (timeSinceLast < nasdaqInterval) return null;
-
-            try {
-                const proxyUrl = 'https://corsproxy.io/?';
-                const targetUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EIXIC';
-                const response = await fetch(proxyUrl + encodeURIComponent(targetUrl));
-                if (!response.ok) {
-                    console.error('纳斯达克代理失败:', response.status);
-                    return null;
-                }
-                const data = await response.json();
-                if (data.chart?.result?.[0]?.meta?.regularMarketPrice) {
-                    lastNasdaqUpdate = now;
-                    return data.chart.result[0].meta.regularMarketPrice;
-                } else {
-                    console.error('纳斯达克数据格式无效');
-                    return null;
-                }
-            } catch (error) {
-                console.error('纳斯达克获取错误:', error);
+            if (!force && timeSinceLast < nasdaqInterval) {
                 return null;
             }
+
+            // 多个代理列表
+            const proxies = [
+                'https://api.allorigins.win/raw?url=',
+                'https://corsproxy.io/?',
+                'https://cors-anywhere.herokuapp.com/'
+            ];
+            
+            const targetUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EIXIC';
+
+            for (let proxy of proxies) {
+                try {
+                    const response = await fetch(proxy + encodeURIComponent(targetUrl));
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.chart?.result?.[0]?.meta?.regularMarketPrice) {
+                            lastNasdaqUpdate = now;
+                            nasdaqFailCount = 0; // 成功，重置失败计数
+                            return data.chart.result[0].meta.regularMarketPrice;
+                        }
+                    }
+                } catch (e) {
+                    console.error(`代理 ${proxy} 失败:`, e);
+                }
+            }
+
+            // 所有代理都失败
+            nasdaqFailCount++;
+            console.error('所有纳斯达克代理均失败');
+            return null;
         }
 
         // ========== 价格循环 ==========
@@ -1259,8 +1278,11 @@
                         }
                     }
                     renderVS();
-                } else if (selectedCoins.some(i => COINS[i].name === 'IXIC') && Date.now() - lastNasdaqUpdate > 300000) {
-                    document.getElementById('conclusionText').textContent = '⚠️ 纳斯达克数据更新延迟，可能市场休市';
+                } else if (selectedCoins.some(i => COINS[i].name === 'IXIC')) {
+                    // 如果失败次数超过3次，在结论区显示提示
+                    if (nasdaqFailCount >= 3) {
+                        document.getElementById('conclusionText').textContent = '⚠️ 纳斯达克数据获取失败，请检查网络或稍后重试';
+                    }
                 }
                 nasdaqLoopTimer = setTimeout(nasdaqLoop, nasdaqInterval * 1000);
             }
