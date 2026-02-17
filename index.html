@@ -1205,7 +1205,7 @@
             }
         }
 
-        // ========== 获取纳斯达克价格（多代理重试） ==========
+        // ========== 获取纳斯达克价格（多源，无CORS问题） ==========
         async function fetchNasdaqPrice(force = false) {
             const now = Date.now();
             const timeSinceLast = (now - lastNasdaqUpdate) / 1000;
@@ -1213,34 +1213,65 @@
                 return null;
             }
 
-            // 多个代理列表
-            const proxies = [
-                'https://api.allorigins.win/raw?url=',
-                'https://corsproxy.io/?',
-                'https://cors-anywhere.herokuapp.com/'
-            ];
-            
-            const targetUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EIXIC';
-
-            for (let proxy of proxies) {
-                try {
-                    const response = await fetch(proxy + encodeURIComponent(targetUrl));
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.chart?.result?.[0]?.meta?.regularMarketPrice) {
-                            lastNasdaqUpdate = now;
-                            nasdaqFailCount = 0; // 成功，重置失败计数
-                            return data.chart.result[0].meta.regularMarketPrice;
+            // 多源尝试
+            const sources = [
+                // 1. 新浪财经 (国内源，无CORS)
+                async () => {
+                    const url = 'https://hq.sinajs.cn/list=int_ixic';
+                    const res = await fetch(url, { headers: { 'Referer': 'https://finance.sina.com.cn' } });
+                    if (!res.ok) return null;
+                    const text = await res.text();
+                    const match = text.match(/"([^"]+)"/);
+                    if (match) {
+                        const parts = match[1].split(',');
+                        if (parts && parts.length > 1) {
+                            return parseFloat(parts[1]); // 最新价
                         }
                     }
+                    return null;
+                },
+                // 2. 腾讯财经 (备用)
+                async () => {
+                    const url = 'https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=int_ixic,day,,,1';
+                    const res = await fetch(url);
+                    if (!res.ok) return null;
+                    const data = await res.json();
+                    if (data.data && data.data.int_ixic && data.data.int_ixic.day && data.data.int_ixic.day[0]) {
+                        return parseFloat(data.data.int_ixic.day[0][2]); // 收盘价
+                    }
+                    return null;
+                },
+                // 3. 雅虎代理 (最后备用)
+                async () => {
+                    const proxy = 'https://api.allorigins.win/raw?url=';
+                    const target = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EIXIC';
+                    const res = await fetch(proxy + encodeURIComponent(target));
+                    if (!res.ok) return null;
+                    const data = await res.json();
+                    if (data.chart?.result?.[0]?.meta?.regularMarketPrice) {
+                        return data.chart.result[0].meta.regularMarketPrice;
+                    }
+                    return null;
+                }
+            ];
+
+            for (let i = 0; i < sources.length; i++) {
+                try {
+                    const price = await sources[i]();
+                    if (price && price > 0) {
+                        console.log(`纳斯达克获取成功 (源${i+1}):`, price);
+                        lastNasdaqUpdate = now;
+                        nasdaqFailCount = 0;
+                        return price;
+                    }
                 } catch (e) {
-                    console.error(`代理 ${proxy} 失败:`, e);
+                    console.error(`纳斯达克源${i+1}失败:`, e);
                 }
             }
 
-            // 所有代理都失败
+            // 所有源都失败
             nasdaqFailCount++;
-            console.error('所有纳斯达克代理均失败');
+            console.error('所有纳斯达克源均失败');
             return null;
         }
 
