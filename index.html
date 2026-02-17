@@ -153,6 +153,12 @@
             margin-top: 4px;
         }
 
+        .coin-oi {
+            font-size: 11px;
+            color: #FF6B6B;
+            margin-top: 2px;
+        }
+
         .coin-volume {
             font-size: 11px;
             color: #3B82F6;
@@ -796,14 +802,16 @@
         let historyData = [];
         let lastNasdaqUpdate = 0;
 
-        // 存储各币种的高级数据
+        // 存储持仓量数据（含基准值和涨跌幅）
+        let openInterestData = {};
+
+        // 存储各币种的高级数据（成交量、多空比、资金费率）
         let marketData = {};
 
         let isRunning = false;
         let cryptoLoopTimer = null;
         let nasdaqLoopTimer = null;
         let recordLoopTimer = null;
-        let marketDataTimer = null;
 
         // 存储每个币种的清算区域数据
         let liquidationZoneData = {};
@@ -817,7 +825,7 @@
             // 启动时间更新
             setInterval(updateTimeDisplay, 1000);
             
-            // 立即获取市场数据
+            // 立即获取所有市场数据（持仓量、成交量、多空比、资金费率）
             fetchAllMarketData();
             
             // 启动市场数据更新（每60秒）
@@ -835,7 +843,7 @@
             }
         }
 
-        // ========== 获取所有市场数据（成交量、多空比、资金费率） ==========
+        // ========== 获取所有市场数据（持仓量、成交量、多空比、资金费率） ==========
         async function fetchAllMarketData() {
             console.log('开始获取市场数据...');
             const cryptoIndices = selectedCoins.filter(i => COINS[i].name !== 'IXIC');
@@ -845,22 +853,49 @@
                 const symbol = coin.symbol;
                 
                 try {
-                    // 初始化该币种的数据对象
-                    if (!marketData[coin.name]) {
-                        marketData[coin.name] = {};
+                    // 1. 获取持仓量（含涨跌幅）
+                    const oiUrl = `https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`;
+                    const oiRes = await fetch(oiUrl);
+                    if (oiRes.ok) {
+                        const oiData = await oiRes.json();
+                        let oi = parseFloat(oiData.openInterest);
+                        
+                        // 格式化数值
+                        let formattedOI = formatLargeNumber(oi);
+                        
+                        // 存储原始数值用于计算涨跌幅
+                        if (!openInterestData[coin.name]) {
+                            // 第一次获取，记录为基准值
+                            openInterestData[coin.name] = {
+                                current: oi,
+                                base: oi,
+                                formatted: formattedOI,
+                                change: 0
+                            };
+                        } else {
+                            // 后续更新，计算涨跌幅
+                            const base = openInterestData[coin.name].base;
+                            const change = ((oi - base) / base) * 100;
+                            openInterestData[coin.name] = {
+                                current: oi,
+                                base: base,
+                                formatted: formattedOI,
+                                change: change
+                            };
+                        }
                     }
 
-                    // 1. 获取24h成交量（现货）
+                    // 2. 获取24h成交量（现货）
                     const tickerUrl = `https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`;
                     const tickerRes = await fetch(tickerUrl);
                     if (tickerRes.ok) {
                         const tickerData = await tickerRes.json();
                         const volume = parseFloat(tickerData.volume);
+                        if (!marketData[coin.name]) marketData[coin.name] = {};
                         marketData[coin.name].volume = formatLargeNumber(volume);
-                        console.log(`${coin.name} 成交量:`, volume);
                     }
 
-                    // 2. 获取多空比（合约账户数）
+                    // 3. 获取多空比（合约账户数）
                     const lsUrl = `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=5m`;
                     const lsRes = await fetch(lsUrl);
                     if (lsRes.ok) {
@@ -871,12 +906,12 @@
                             const ratio = (long / short).toFixed(2);
                             const longPercent = (long * 100).toFixed(1);
                             const shortPercent = (short * 100).toFixed(1);
+                            if (!marketData[coin.name]) marketData[coin.name] = {};
                             marketData[coin.name].lsRatio = `${ratio} (多${longPercent}%/空${shortPercent}%)`;
-                            console.log(`${coin.name} 多空比:`, ratio);
                         }
                     }
 
-                    // 3. 获取资金费率
+                    // 4. 获取资金费率
                     const frUrl = `https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`;
                     const frRes = await fetch(frUrl);
                     if (frRes.ok) {
@@ -889,11 +924,11 @@
                         const hoursLeft = Math.floor((nextFundingTime - now) / (1000 * 60 * 60));
                         const minutesLeft = Math.floor(((nextFundingTime - now) % (1000 * 60 * 60)) / (1000 * 60));
                         
+                        if (!marketData[coin.name]) marketData[coin.name] = {};
                         marketData[coin.name].fundingRate = {
                             rate: fundingRate.toFixed(4),
                             time: `${hoursLeft}h${minutesLeft}m`
                         };
-                        console.log(`${coin.name} 资金费率:`, fundingRate);
                     }
 
                 } catch (error) {
@@ -938,6 +973,7 @@
 
             // 切换币种时清空所有数据
             liquidationZoneData = {};
+            openInterestData = {};
             marketData = {};
 
             createCoinButtons();
@@ -971,6 +1007,15 @@
                 // 清算区域文本
                 const srText = liquidationZoneData[coin.name] || '清算区: --';
                 
+                // 持仓量数据（含涨跌幅）
+                const oiData = openInterestData[coin.name];
+                let oiText = '📦 持仓: --';
+                if (oiData) {
+                    const changeClass = oiData.change > 0 ? 'up' : oiData.change < 0 ? 'down' : 'equal';
+                    const changeSign = oiData.change > 0 ? '+' : '';
+                    oiText = `📦 持仓: ${oiData.formatted} ${coin.name} <span class="${changeClass}">${changeSign}${oiData.change.toFixed(2)}%</span>`;
+                }
+                
                 // 市场数据
                 const md = marketData[coin.name] || {};
                 const volumeText = md.volume ? `📊 量: ${md.volume}` : '📊 量: --';
@@ -986,6 +1031,7 @@
                         <div class="coin-price">${formatPrice(price, coin.name)}</div>
                         <div class="coin-base">基准: ${formatPrice(basePrice, coin.name)}</div>
                         <div class="coin-sr" style="font-size:11px; color:#F59E0B; margin-top:4px;">${srText}</div>
+                        <div class="coin-oi" style="font-size:11px; color:#FF6B6B; margin-top:2px;">${oiText}</div>
                         <div class="coin-volume" style="font-size:11px; color:#3B82F6; margin-top:2px;">${volumeText}</div>
                         <div class="coin-lsr" style="font-size:11px; color:#9945FF; margin-top:2px;">${lsText}</div>
                         <div class="coin-fr" style="font-size:11px; color:#10B981; margin-top:2px;">${frText}</div>
