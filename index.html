@@ -153,9 +153,21 @@
             margin-top: 4px;
         }
 
-        .coin-oi {
-            font-size: 12px;
+        .coin-volume {
+            font-size: 11px;
             color: #3B82F6;
+            margin-top: 2px;
+        }
+
+        .coin-lsr {
+            font-size: 11px;
+            color: #9945FF;
+            margin-top: 2px;
+        }
+
+        .coin-fr {
+            font-size: 11px;
+            color: #10B981;
             margin-top: 2px;
         }
 
@@ -784,13 +796,14 @@
         let historyData = [];
         let lastNasdaqUpdate = 0;
 
-        // 新增：存储持仓量数据
-        let openInterestData = {};
+        // 存储各币种的高级数据
+        let marketData = {};
 
         let isRunning = false;
         let cryptoLoopTimer = null;
         let nasdaqLoopTimer = null;
         let recordLoopTimer = null;
+        let marketDataTimer = null;
 
         // 存储每个币种的清算区域数据
         let liquidationZoneData = {};
@@ -803,58 +816,84 @@
             renderVS();
             // 启动时间更新
             setInterval(updateTimeDisplay, 1000);
-            // 启动持仓量更新（每60秒）
-            setInterval(fetchAllOpenInterest, 60000);
+            // 启动市场数据更新（每60秒）
+            setInterval(fetchAllMarketData, 60000);
         }
-        // ========== 获取所有选中币种的持仓量（含涨跌幅） ==========
-        async function fetchAllOpenInterest() {
+
+        // ========== 格式化大数字 ==========
+        function formatLargeNumber(num) {
+            if (num >= 1e6) {
+                return (num / 1e6).toFixed(2) + 'M';
+            } else if (num >= 1e3) {
+                return (num / 1e3).toFixed(2) + 'K';
+            } else {
+                return num.toFixed(2);
+            }
+        }
+
+        // ========== 获取所有市场数据（成交量、多空比、资金费率） ==========
+        async function fetchAllMarketData() {
             const cryptoIndices = selectedCoins.filter(i => COINS[i].name !== 'IXIC');
+            
             for (let index of cryptoIndices) {
-            const coin = COINS[index];
-            const symbol = coin.symbol;
-            try {
-            // 使用币安合约接口获取持仓量
-            const url = `https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`;
-            const res = await fetch(url);
-            if (!res.ok) continue;
-            const data = await res.json();
-            let oi = parseFloat(data.openInterest);
-            
-            // 格式化数值（保留2位小数，超过1000用K表示）
-            let formattedOI;
-            if (oi >= 1000) {
-                formattedOI = (oi / 1000).toFixed(2) + 'K';
-            } else {
-                formattedOI = oi.toFixed(2);
-            }
-            
-            // 存储原始数值用于计算涨跌幅
-            if (!openInterestData[coin.name]) {
-                // 第一次获取，记录为基准值
-                openInterestData[coin.name] = {
-                    current: oi,
-                    base: oi,
-                    formatted: formattedOI,
-                    change: 0
-                };
-            } else {
-                // 后续更新，计算涨跌幅
-                const base = openInterestData[coin.name].base;
-                const change = ((oi - base) / base) * 100;
-                openInterestData[coin.name] = {
-                    current: oi,
-                    base: base,
-                    formatted: formattedOI,
-                    change: change
-                };
-            }
+                const coin = COINS[index];
+                const symbol = coin.symbol;
+                
+                try {
+                    // 初始化该币种的数据对象
+                    if (!marketData[coin.name]) {
+                        marketData[coin.name] = {};
+                    }
+
+                    // 1. 获取24h成交量（现货）
+                    const tickerUrl = `https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`;
+                    const tickerRes = await fetch(tickerUrl);
+                    if (tickerRes.ok) {
+                        const tickerData = await tickerRes.json();
+                        const volume = parseFloat(tickerData.volume);
+                        marketData[coin.name].volume = formatLargeNumber(volume);
+                    }
+
+                    // 2. 获取多空比（合约账户数）
+                    const lsUrl = `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=5m`;
+                    const lsRes = await fetch(lsUrl);
+                    if (lsRes.ok) {
+                        const lsData = await lsRes.json();
+                        if (lsData && lsData.length > 0) {
+                            const long = parseFloat(lsData[0].longAccount);
+                            const short = parseFloat(lsData[0].shortAccount);
+                            const ratio = (long / short).toFixed(2);
+                            const longPercent = (long * 100).toFixed(1);
+                            const shortPercent = (short * 100).toFixed(1);
+                            marketData[coin.name].lsRatio = `${ratio} (多${longPercent}%/空${shortPercent}%)`;
+                        }
+                    }
+
+                    // 3. 获取资金费率
+                    const frUrl = `https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`;
+                    const frRes = await fetch(frUrl);
+                    if (frRes.ok) {
+                        const frData = await frRes.json();
+                        const fundingRate = parseFloat(frData.lastFundingRate) * 100; // 转为百分比
+                        const nextFundingTime = frData.nextFundingTime;
+                        
+                        // 计算距离下次收费的时间
+                        const now = Date.now();
+                        const hoursLeft = Math.floor((nextFundingTime - now) / (1000 * 60 * 60));
+                        const minutesLeft = Math.floor(((nextFundingTime - now) % (1000 * 60 * 60)) / (1000 * 60));
+                        
+                        marketData[coin.name].fundingRate = {
+                            rate: fundingRate.toFixed(4),
+                            time: `${hoursLeft}h${minutesLeft}m`
+                        };
+                    }
+
                 } catch (error) {
-                    console.error(`获取${coin.name}持仓量失败:`, error);
+                    console.error(`获取${coin.name}市场数据失败:`, error);
                 }
             }
             renderVS(); // 更新显示
         }
-        
 
         // ========== 创建币种按钮 ==========
         function createCoinButtons() {
@@ -889,9 +928,9 @@
                 }
             }
 
-            // 切换币种时清空之前的清算区域数据和持仓量数据
+            // 切换币种时清空所有数据
             liquidationZoneData = {};
-            openInterestData = {};
+            marketData = {};
 
             createCoinButtons();
             renderVS();
@@ -920,14 +959,13 @@
 
                 // 清算区域文本
                 const srText = liquidationZoneData[coin.name] || '清算区: --';
-                //持仓量
-                const oiData = openInterestData[coin.name];
-                let oiText = '📊 持仓: --';
-                if (oiData) {
-                    const changeClass = oiData.change > 0 ? 'up' : oiData.change < 0 ? 'down' : 'equal';
-                    const changeSign = oiData.change > 0 ? '+' : '';
-                    oiText = `📊 持仓: ${oiData.formatted} ${coin.name} <span class="${changeClass}">${changeSign}${oiData.change.toFixed(2)}%</span>`;
-                }
+                
+                // 市场数据
+                const md = marketData[coin.name] || {};
+                const volumeText = md.volume ? `📊 量: ${md.volume}` : '';
+                const lsText = md.lsRatio ? `👥 多空: ${md.lsRatio}` : '';
+                const frText = md.fundingRate ? `💸 费率: ${md.fundingRate.rate}% (${md.fundingRate.time})` : '';
+
                 html += `
                     <div class="coin-block">
                         <div class="coin-header">
@@ -936,10 +974,12 @@
                         </div>
                         <div class="coin-price">${formatPrice(price, coin.name)}</div>
                         <div class="coin-base">基准: ${formatPrice(basePrice, coin.name)}</div>
-                        <div class="coin-sr" id="sr-${coin.name}" style="font-size:12px; color:#F59E0B; margin-top:4px;">${srText}</div>
-                        <div class="coin-oi" style="font-size:12px; color:#3B82F6; margin-top:2px;">${oiText}</div>
+                        <div class="coin-sr" style="font-size:11px; color:#F59E0B; margin-top:4px;">${srText}</div>
+                        <div class="coin-volume" style="font-size:11px; color:#3B82F6; margin-top:2px;">${volumeText}</div>
+                        <div class="coin-lsr" style="font-size:11px; color:#9945FF; margin-top:2px;">${lsText}</div>
+                        <div class="coin-fr" style="font-size:11px; color:#10B981; margin-top:2px;">${frText}</div>
                         <div class="coin-change ${change >= 0 ? 'up' : 'down'}" 
-                             style="background: ${change >= 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}">
+                             style="background: ${change >= 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}; margin-top:4px;">
                             ${change > 0 ? '+' : ''}${change.toFixed(2)}%
                         </div>
                     </div>
@@ -1039,8 +1079,8 @@
                 dot.style.background = '#10B981';
                 startPriceFetcher();
                 document.getElementById('refreshRateText').innerHTML = '⚡ 运行中';
-                // 启动后立即获取一次持仓量
-                fetchAllOpenInterest();
+                // 启动后立即获取一次市场数据
+                fetchAllMarketData();
             }
         }
 
