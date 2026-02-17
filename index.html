@@ -1410,7 +1410,7 @@
             document.getElementById('statusText').innerHTML = `已选 ${selectedCoins.length}/4 币种`;
         }
 
-        // ========== 改进版AI分析（使用DeepSeek API） ==========
+        // ========== 改进版AI分析（使用DeepSeek API，加入所有市场数据） ==========
         async function analyzeAll() {
             const aiContent = document.getElementById('aiContent');
             
@@ -1440,13 +1440,31 @@
                     }
                 }
                 
+                // 获取清算区数据
+                const srText = liquidationZoneData[coin.name] || '暂无';
+                
+                // 获取持仓量数据
+                const oiData = openInterestData[coin.name];
+                const oiInfo = oiData ? `${oiData.formatted} ${coin.name} (变化 ${oiData.change > 0 ? '+' : ''}${oiData.change.toFixed(2)}%)` : '暂无';
+                
+                // 获取市场数据
+                const md = marketData[coin.name] || {};
+                const volumeInfo = md.volume ? md.volume : '暂无';
+                const lsInfo = md.lsRatio ? md.lsRatio : '暂无';
+                const frInfo = md.fundingRate ? `${md.fundingRate.rate}% (${md.fundingRate.time})` : '暂无';
+                
                 coinDetails.push({
                     name: coin.name,
                     price: price,
                     base: base,
                     change4h: change4h.toFixed(2),
                     recentChanges: recentChanges.length ? recentChanges.join('%, ') + '%' : '无',
-                    color: coin.color
+                    color: coin.color,
+                    sr: srText,
+                    oi: oiInfo,
+                    volume: volumeInfo,
+                    ls: lsInfo,
+                    fr: frInfo
                 });
                 totalChange += change4h;
             });
@@ -1467,7 +1485,8 @@
                 })
                 .replace(/(支撑位|压力位|目标位|止损位)/g, '<span style="color:#F59E0B;">$1</span>')
                 .replace(/(看涨|买入|做多)/g, '<span class="up">$1</span>')
-                .replace(/(看跌|卖出|做空)/g, '<span class="down">$1</span>');
+                .replace(/(看跌|卖出|做空)/g, '<span class="down">$1</span>')
+                .replace(/(上涨概率|下跌概率|概率)/g, '<span style="color:#3B82F6;">$1</span>');
             
             aiContent.innerHTML = formattedAnalysis.replace(/\n/g, '<br>');
         }
@@ -1478,6 +1497,11 @@
             prompt += `【当前市场数据】\n`;
             coinDetails.forEach(c => {
                 prompt += `- ${c.name}：价格 ${c.price.toFixed(2)}，基准价 ${c.base.toFixed(2)}，涨跌幅 ${c.change4h}%，最近3次记录涨跌幅：${c.recentChanges}\n`;
+                prompt += `  清算区：${c.sr}\n`;
+                prompt += `  持仓量：${c.oi}\n`;
+                prompt += `  成交量：${c.volume}\n`;
+                prompt += `  多空比：${c.ls}\n`;
+                prompt += `  资金费率：${c.fr}\n`;
             });
             
             prompt += `\n【组合指标】\n`;
@@ -1488,10 +1512,11 @@
             
             prompt += `\n请按以下结构输出分析，**必须包含具体数字和价位**：\n\n`;
             prompt += `1️⃣ **当前强弱排序**：从强到弱列出币种，说明理由。\n`;
-            prompt += `2️⃣ **关键价位预测**：基于历史波动幅度，给出未来24小时可能的支撑位和压力位。\n`;
-            prompt += `3️⃣ **套利机会分析**：是否存在强弱币种配对套利空间？预期收益率？\n`;
-            prompt += `4️⃣ **风险评级**：给出1-10分风险评分，并说明主要风险来源。\n`;
-            prompt += `5️⃣ **具体交易建议**：\n`;
+            prompt += `2️⃣ **关键价位预测**：基于历史波动幅度和清算区，给出未来24小时可能的支撑位和压力位。\n`;
+            prompt += `3️⃣ **多空方向概率**：结合多空比、资金费率、持仓量变化，给出未来24小时上涨/下跌的概率估算（例如“上涨概率65%”），并说明依据。\n`;
+            prompt += `4️⃣ **套利机会分析**：是否存在强弱币种配对套利空间？预期收益率？\n`;
+            prompt += `5️⃣ **风险评级**：给出1-10分风险评分，并说明主要风险来源。\n`;
+            prompt += `6️⃣ **具体交易建议**：\n`;
             prompt += `   - 如果做多：最佳入场区间、第一目标位、止损位。\n`;
             prompt += `   - 如果做空：最佳入场区间、第一目标位、止损位。\n`;
             prompt += `   - 如果观望：等待什么信号？\n\n`;
@@ -1517,7 +1542,7 @@
                             { role: 'user', content: prompt }
                         ],
                         temperature: 0.3,
-                        max_tokens: 1200,
+                        max_tokens: 1500,
                         top_p: 0.9
                     })
                 });
