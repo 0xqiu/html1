@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>🚀 强弱对比 · 多VS对比</title>
     <style>
-        /* 样式与之前保持一致，此处省略以节省篇幅，实际使用时请保留原样式 */
-        /* 请确保所有原有样式都在这里 */
+        /* ===== 响应式设计 ===== */
         * {
             margin: 0;
             padding: 0;
@@ -152,6 +151,12 @@
             font-size: 12px;
             color: #F59E0B;
             margin-top: 4px;
+        }
+
+        .coin-oi {
+            font-size: 12px;
+            color: #3B82F6;
+            margin-top: 2px;
         }
 
         .coin-change {
@@ -779,6 +784,9 @@
         let historyData = [];
         let lastNasdaqUpdate = 0;
 
+        // 新增：存储持仓量数据
+        let openInterestData = {};
+
         let isRunning = false;
         let cryptoLoopTimer = null;
         let nasdaqLoopTimer = null;
@@ -793,7 +801,38 @@
             updateStatusBar();
             updateNasdaqVisibility();
             renderVS();
+            // 启动时间更新
             setInterval(updateTimeDisplay, 1000);
+            // 启动持仓量更新（每60秒）
+            setInterval(fetchAllOpenInterest, 60000);
+        }
+
+        // ========== 获取所有选中币种的持仓量 ==========
+        async function fetchAllOpenInterest() {
+            const cryptoIndices = selectedCoins.filter(i => COINS[i].name !== 'IXIC');
+            for (let index of cryptoIndices) {
+                const coin = COINS[index];
+                const symbol = coin.symbol;
+                try {
+                    // 使用币安合约接口获取持仓量
+                    const url = `https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`;
+                    const res = await fetch(url);
+                    if (!res.ok) continue;
+                    const data = await res.json();
+                    // 格式化数值（保留2位小数，超过1000用K表示）
+                    let oi = parseFloat(data.openInterest);
+                    let formattedOI;
+                    if (oi >= 1000) {
+                        formattedOI = (oi / 1000).toFixed(2) + 'K';
+                    } else {
+                        formattedOI = oi.toFixed(2);
+                    }
+                    openInterestData[coin.name] = `📊 持仓: ${formattedOI} ${coin.name}`;
+                } catch (error) {
+                    console.error(`获取${coin.name}持仓量失败:`, error);
+                }
+            }
+            renderVS(); // 更新显示
         }
 
         // ========== 创建币种按钮 ==========
@@ -829,8 +868,9 @@
                 }
             }
 
-            // 切换币种时清空之前的清算区域数据
+            // 切换币种时清空之前的清算区域数据和持仓量数据
             liquidationZoneData = {};
+            openInterestData = {};
 
             createCoinButtons();
             renderVS();
@@ -857,7 +897,10 @@
                 const basePrice = basePrices[coin.symbol] || price;
                 const change = basePrice ? ((price - basePrice) / basePrice * 100) : 0;
 
+                // 清算区域文本
                 const srText = liquidationZoneData[coin.name] || '清算区: --';
+                // 持仓量文本
+                const oiText = openInterestData[coin.name] || '📊 持仓: --';
 
                 html += `
                     <div class="coin-block">
@@ -868,6 +911,7 @@
                         <div class="coin-price">${formatPrice(price, coin.name)}</div>
                         <div class="coin-base">基准: ${formatPrice(basePrice, coin.name)}</div>
                         <div class="coin-sr" id="sr-${coin.name}" style="font-size:12px; color:#F59E0B; margin-top:4px;">${srText}</div>
+                        <div class="coin-oi" style="font-size:12px; color:#3B82F6; margin-top:2px;">${oiText}</div>
                         <div class="coin-change ${change >= 0 ? 'up' : 'down'}" 
                              style="background: ${change >= 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}">
                             ${change > 0 ? '+' : ''}${change.toFixed(2)}%
@@ -969,6 +1013,8 @@
                 dot.style.background = '#10B981';
                 startPriceFetcher();
                 document.getElementById('refreshRateText').innerHTML = '⚡ 运行中';
+                // 启动后立即获取一次持仓量
+                fetchAllOpenInterest();
             }
         }
 
