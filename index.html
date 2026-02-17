@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>🚀 强弱对比 · 多VS对比</title>
     <style>
-        /* ===== 响应式设计 ===== */
+        /* 样式与之前完全相同，此处省略以节省篇幅，实际使用时请保留完整样式 */
+        /* 请复制之前代码中的完整样式部分到这里 */
         * {
             margin: 0;
             padding: 0;
@@ -1410,7 +1411,23 @@
             document.getElementById('statusText').innerHTML = `已选 ${selectedCoins.length}/4 币种`;
         }
 
-        // ========== 改进版AI分析（使用DeepSeek API，加入所有市场数据） ==========
+        // ========== 获取1小时K线数据 ==========
+        async function fetch1hKlines(symbol, limit = 100) {
+            const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=${limit}`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`获取K线失败`);
+            const data = await res.json();
+            return data.map(k => ({
+                time: k[0],
+                open: parseFloat(k[1]),
+                high: parseFloat(k[2]),
+                low: parseFloat(k[3]),
+                close: parseFloat(k[4]),
+                volume: parseFloat(k[5])
+            }));
+        }
+
+        // ========== 改进版AI分析（使用DeepSeek API，基于1小时K线） ==========
         async function analyzeAll() {
             const aiContent = document.getElementById('aiContent');
             
@@ -1419,110 +1436,104 @@
                 return;
             }
             
-            aiContent.innerHTML = '🧠 DeepSeek AI 正在深度分析中...';
-            
-            let coinDetails = [];
-            let totalChange = 0;
-            selectedCoins.forEach(index => {
+            aiContent.innerHTML = '🧠 DeepSeek AI 正在基于1小时K线进行深度分析...';
+
+            let analyses = [];
+
+            for (let index of selectedCoins) {
                 const coin = COINS[index];
-                const price = getCoinPrice(coin);
-                const base = basePrices[coin.symbol] || price;
-                const change4h = base ? ((price - base) / base * 100) : 0;
                 
-                let recentChanges = [];
-                for (let i = historyData.length - 1; i >= Math.max(0, historyData.length-3); i--) {
-                    const record = historyData[i];
-                    const pricePoint = record?.prices.find(p => p.name === coin.name);
-                    if (pricePoint) {
-                        const prevPrice = pricePoint.price;
-                        const prevChange = ((price - prevPrice) / prevPrice) * 100;
-                        recentChanges.push(prevChange.toFixed(2));
-                    }
+                // 纳斯达克暂时不支持K线分析
+                if (coin.symbol === 'nasdaq') {
+                    analyses.push({
+                        coinName: coin.name,
+                        color: coin.color,
+                        content: '⚠️ 纳斯达克暂不支持K线分析，请选择加密货币。'
+                    });
+                    continue;
                 }
-                
-                // 获取清算区数据
-                const srText = liquidationZoneData[coin.name] || '暂无';
-                
-                // 获取持仓量数据
-                const oiData = openInterestData[coin.name];
-                const oiInfo = oiData ? `${oiData.formatted} ${coin.name} (变化 ${oiData.change > 0 ? '+' : ''}${oiData.change.toFixed(2)}%)` : '暂无';
-                
-                // 获取市场数据
-                const md = marketData[coin.name] || {};
-                const volumeInfo = md.volume ? md.volume : '暂无';
-                const lsInfo = md.lsRatio ? md.lsRatio : '暂无';
-                const frInfo = md.fundingRate ? `${md.fundingRate.rate}% (${md.fundingRate.time})` : '暂无';
-                
-                coinDetails.push({
-                    name: coin.name,
-                    price: price,
-                    base: base,
-                    change4h: change4h.toFixed(2),
-                    recentChanges: recentChanges.length ? recentChanges.join('%, ') + '%' : '无',
-                    color: coin.color,
-                    sr: srText,
-                    oi: oiInfo,
-                    volume: volumeInfo,
-                    ls: lsInfo,
-                    fr: frInfo
-                });
-                totalChange += change4h;
-            });
+
+                aiContent.innerHTML = `🧠 正在分析 ${coin.name} 1小时K线...`;
+
+                try {
+                    // 获取1小时K线数据
+                    const klines = await fetch1hKlines(coin.symbol, 100);
+                    
+                    // 提取最近几根K线作为样本（避免prompt过长）
+                    const recentKlines = klines.slice(-20).map(k => 
+                        `时间:${new Date(k.time).toLocaleTimeString()} O:${k.open} H:${k.high} L:${k.low} C:${k.close} V:${k.volume}`
+                    ).join('\n');
+
+                    // 获取当前市场数据
+                    const md = marketData[coin.name] || {};
+                    const oiData = openInterestData[coin.name];
+                    const srText = liquidationZoneData[coin.name] || '暂无清算区';
+
+                    // 构建提示词
+                    const prompt = `你是一位顶级的加密货币交易员。请基于以下 ${coin.name} 的1小时K线数据（最近20根）和市场指标，进行专业分析：
+
+【1小时K线数据（最近20根，按时间从旧到新）】
+${recentKlines}
+
+【实时市场数据】
+- 当前价格: ${getCoinPrice(coin)?.toFixed(2) || '未知'}
+- 24h成交量: ${md.volume || '暂无'}
+- 多空比: ${md.lsRatio || '暂无'}
+- 资金费率: ${md.fundingRate ? md.fundingRate.rate + '%' : '暂无'}
+- 持仓量变化: ${oiData ? (oiData.change > 0 ? '+' : '') + oiData.change.toFixed(2) + '%' : '暂无'}
+- 清算区: ${srText}
+
+请按以下结构输出分析，**必须包含具体数字和价位**：
+
+1️⃣ **当前趋势判断**：根据K线形态和均线系统，判断当前处于上升/下降/震荡趋势，并简要说明理由。
+
+2️⃣ **关键价位预测**：基于K线高低点和清算区，给出未来24小时可能的支撑位和压力位（具体到小数点后2位）。
+
+3️⃣ **多空方向概率**：结合多空比、资金费率、持仓量变化，给出未来24小时上涨/下跌的概率估算（例如“上涨概率65%”），并说明依据。
+
+4️⃣ **套利机会分析**：如果与其他选中币种相比存在强弱差异，可提出配对套利建议。
+
+5️⃣ **风险评级**：给出1-10分风险评分，并说明主要风险来源。
+
+6️⃣ **具体交易建议**：
+   - 如果做多：最佳入场区间、第一目标位、止损位。
+   - 如果做空：最佳入场区间、第一目标位、止损位。
+   - 如果观望：等待什么信号？
+
+请用专业、客观、直接的语言回答，避免模糊表述。`;
+
+                    const analysis = await callDeepSeekAPI(prompt);
+                    
+                    analyses.push({
+                        coinName: coin.name,
+                        color: coin.color,
+                        content: analysis
+                    });
+
+                } catch (error) {
+                    console.error(`${coin.name}分析失败:`, error);
+                    analyses.push({
+                        coinName: coin.name,
+                        color: coin.color,
+                        content: `❌ 分析失败: ${error.message}`
+                    });
+                }
+            }
+
+            // 汇总输出
+            let finalReport = '';
+            for (let item of analyses) {
+                finalReport += `━━━━━━━━━━━━━━━━━━━━\n`;
+                finalReport += `<span style="color:${item.color}; font-size:1.1em; font-weight:bold;">📊 ${item.coinName} 1小时K线分析</span>\n`;
+                finalReport += `${item.content}\n\n`;
+            }
             
-            const avgChange = (totalChange / selectedCoins.length).toFixed(2);
-            const maxChangeCoin = coinDetails.reduce((a, b) => parseFloat(a.change4h) > parseFloat(b.change4h) ? a : b);
-            const minChangeCoin = coinDetails.reduce((a, b) => parseFloat(a.change4h) < parseFloat(b.change4h) ? a : b);
-            const spread = (parseFloat(maxChangeCoin.change4h) - parseFloat(minChangeCoin.change4h)).toFixed(2);
-            
-            const prompt = buildAdvancedPrompt(coinDetails, { avgChange, maxChangeCoin, minChangeCoin, spread });
-            const analysis = await callDeepSeekAPI(prompt);
-            
-            let formattedAnalysis = analysis
-                .replace(/(比特币|BTC|eth|ETH|sol|SOL|bnb|BNB|ixic|IXIC|纳斯达克)/g, match => {
-                    const coin = coinDetails.find(c => c.name === match.toUpperCase());
-                    if (coin) return `<span style="color:${coin.color}; font-weight:bold;">${match}</span>`;
-                    return match;
-                })
-                .replace(/(支撑位|压力位|目标位|止损位)/g, '<span style="color:#F59E0B;">$1</span>')
-                .replace(/(看涨|买入|做多)/g, '<span class="up">$1</span>')
-                .replace(/(看跌|卖出|做空)/g, '<span class="down">$1</span>')
-                .replace(/(上涨概率|下跌概率|概率)/g, '<span style="color:#3B82F6;">$1</span>');
-            
-            aiContent.innerHTML = formattedAnalysis.replace(/\n/g, '<br>');
+            aiContent.innerHTML = finalReport.replace(/\n/g, '<br>');
         }
 
         function buildAdvancedPrompt(coinDetails, meta) {
-            let prompt = `你是一位顶级的加密货币交易员。请基于以下真实市场数据，对 ${coinDetails.map(c => c.name).join('/')} 进行**实质性技术分析**，给出可执行的交易建议。\n\n`;
-            
-            prompt += `【当前市场数据】\n`;
-            coinDetails.forEach(c => {
-                prompt += `- ${c.name}：价格 ${c.price.toFixed(2)}，基准价 ${c.base.toFixed(2)}，涨跌幅 ${c.change4h}%，最近3次记录涨跌幅：${c.recentChanges}\n`;
-                prompt += `  清算区：${c.sr}\n`;
-                prompt += `  持仓量：${c.oi}\n`;
-                prompt += `  成交量：${c.volume}\n`;
-                prompt += `  多空比：${c.ls}\n`;
-                prompt += `  资金费率：${c.fr}\n`;
-            });
-            
-            prompt += `\n【组合指标】\n`;
-            prompt += `- 平均涨跌幅：${meta.avgChange}%\n`;
-            prompt += `- 最强币种：${meta.maxChangeCoin.name} (${meta.maxChangeCoin.change4h}%)\n`;
-            prompt += `- 最弱币种：${meta.minChangeCoin.name} (${meta.minChangeCoin.change4h}%)\n`;
-            prompt += `- 强弱差值：${meta.spread}%\n`;
-            
-            prompt += `\n请按以下结构输出分析，**必须包含具体数字和价位**：\n\n`;
-            prompt += `1️⃣ **当前强弱排序**：从强到弱列出币种，说明理由。\n`;
-            prompt += `2️⃣ **关键价位预测**：基于历史波动幅度和清算区，给出未来24小时可能的支撑位和压力位。\n`;
-            prompt += `3️⃣ **多空方向概率**：结合多空比、资金费率、持仓量变化，给出未来24小时上涨/下跌的概率估算（例如“上涨概率65%”），并说明依据。\n`;
-            prompt += `4️⃣ **套利机会分析**：是否存在强弱币种配对套利空间？预期收益率？\n`;
-            prompt += `5️⃣ **风险评级**：给出1-10分风险评分，并说明主要风险来源。\n`;
-            prompt += `6️⃣ **具体交易建议**：\n`;
-            prompt += `   - 如果做多：最佳入场区间、第一目标位、止损位。\n`;
-            prompt += `   - 如果做空：最佳入场区间、第一目标位、止损位。\n`;
-            prompt += `   - 如果观望：等待什么信号？\n\n`;
-            prompt += `请用专业、客观、直接的语言回答，避免模糊表述。`;
-            
-            return prompt;
+            // 此函数不再使用，保留但留空
+            return '';
         }
 
         async function callDeepSeekAPI(prompt) {
