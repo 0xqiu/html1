@@ -798,6 +798,7 @@
 
         let cryptoPrices = {};
         let nasdaqPrice = null;
+        let nasdaqIsMock = false;   // 标记纳斯达克是否使用模拟数据
         let basePrices = {};
         let historyData = [];
         let lastNasdaqUpdate = 0;
@@ -1025,13 +1026,19 @@
                 const lsText = md.lsRatio ? `👥 多空: ${md.lsRatio}` : '👥 多空: --';
                 const frText = md.fundingRate ? `💸 费率: ${md.fundingRate.rate}% (${md.fundingRate.time})` : '💸 费率: --';
 
+                // 格式化价格，如果是纳斯达克且是模拟数据，添加标记
+                let priceDisplay = formatPrice(price, coin.name);
+                if (coin.name === 'IXIC' && nasdaqIsMock && price) {
+                    priceDisplay += ' (模拟)';
+                }
+
                 html += `
                     <div class="coin-block">
                         <div class="coin-header">
                             <span class="coin-logo" style="background: ${coin.color}; box-shadow: 0 0 8px ${coin.color};"></span>
                             <span class="coin-symbol" style="color: ${coin.color}">${coin.name}</span>
                         </div>
-                        <div class="coin-price">${formatPrice(price, coin.name)}</div>
+                        <div class="coin-price">${priceDisplay}</div>
                         <div class="coin-base">基准: ${formatPrice(basePrice, coin.name)}</div>
                         <div class="coin-sr" style="font-size:11px; color:#F59E0B; margin-top:4px;">${srText}</div>
                         <div class="coin-oi" style="font-size:11px; color:#FF6B6B; margin-top:2px;">${oiText}</div>
@@ -1162,6 +1169,7 @@
             basePrices = {};
             historyData = [];
             nasdaqPrice = null;
+            nasdaqIsMock = false;
             cryptoPrices = {};
             lastNasdaqUpdate = 0;
             renderVS();
@@ -1205,7 +1213,7 @@
             }
         }
 
-        // ========== 获取纳斯达克价格（多源，无CORS问题） ==========
+        // ========== 获取纳斯达克价格（使用您自己的 Cloudflare Worker） ==========
         async function fetchNasdaqPrice(force = false) {
             const now = Date.now();
             const timeSinceLast = (now - lastNasdaqUpdate) / 1000;
@@ -1213,66 +1221,35 @@
                 return null;
             }
 
-            // 多源尝试
-            const sources = [
-                // 1. 新浪财经 (国内源，无CORS)
-                async () => {
-                    const url = 'https://hq.sinajs.cn/list=int_ixic';
-                    const res = await fetch(url, { headers: { 'Referer': 'https://finance.sina.com.cn' } });
-                    if (!res.ok) return null;
-                    const text = await res.text();
-                    const match = text.match(/"([^"]+)"/);
-                    if (match) {
-                        const parts = match[1].split(',');
-                        if (parts && parts.length > 1) {
-                            return parseFloat(parts[1]); // 最新价
-                        }
-                    }
-                    return null;
-                },
-                // 2. 腾讯财经 (备用)
-                async () => {
-                    const url = 'https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=int_ixic,day,,,1';
-                    const res = await fetch(url);
-                    if (!res.ok) return null;
-                    const data = await res.json();
-                    if (data.data && data.data.int_ixic && data.data.int_ixic.day && data.data.int_ixic.day[0]) {
-                        return parseFloat(data.data.int_ixic.day[0][2]); // 收盘价
-                    }
-                    return null;
-                },
-                // 3. 雅虎代理 (最后备用)
-                async () => {
-                    const proxy = 'https://api.allorigins.win/raw?url=';
-                    const target = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EIXIC';
-                    const res = await fetch(proxy + encodeURIComponent(target));
-                    if (!res.ok) return null;
-                    const data = await res.json();
-                    if (data.chart?.result?.[0]?.meta?.regularMarketPrice) {
-                        return data.chart.result[0].meta.regularMarketPrice;
-                    }
-                    return null;
-                }
-            ];
+            // 使用您自己的 Worker 作为代理
+            const proxyUrl = 'https://ces98.0x8144.workers.dev/?url=';
+            const targetUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EIXIC';
 
-            for (let i = 0; i < sources.length; i++) {
-                try {
-                    const price = await sources[i]();
-                    if (price && price > 0) {
-                        console.log(`纳斯达克获取成功 (源${i+1}):`, price);
-                        lastNasdaqUpdate = now;
-                        nasdaqFailCount = 0;
-                        return price;
-                    }
-                } catch (e) {
-                    console.error(`纳斯达克源${i+1}失败:`, e);
+            try {
+                const response = await fetch(proxyUrl + encodeURIComponent(targetUrl));
+                if (!response.ok) throw new Error(`代理请求失败: ${response.status}`);
+                
+                const data = await response.json();
+                
+                if (data?.chart?.result?.[0]?.meta?.regularMarketPrice) {
+                    const price = data.chart.result[0].meta.regularMarketPrice;
+                    console.log('纳斯达克真实数据获取成功:', price);
+                    lastNasdaqUpdate = now;
+                    nasdaqFailCount = 0;
+                    return { price, isMock: false };
+                } else {
+                    throw new Error('无法解析数据');
                 }
+            } catch (error) {
+                console.error('通过Worker获取纳斯达克数据失败:', error);
+                nasdaqFailCount++;
+                
+                // 可选：如果真实数据获取失败，可以返回模拟数据作为备用
+                const mockPrice = 22600 + Math.random() * 50;
+                console.warn('使用模拟数据:', mockPrice);
+                lastNasdaqUpdate = now;
+                return { price: mockPrice, isMock: true };
             }
-
-            // 所有源都失败
-            nasdaqFailCount++;
-            console.error('所有纳斯达克源均失败');
-            return null;
         }
 
         // ========== 价格循环 ==========
@@ -1298,21 +1275,22 @@
 
             async function nasdaqLoop() {
                 if (!isRunning) return;
-                const price = await fetchNasdaqPrice();
-                if (price) {
-                    nasdaqPrice = price;
-                    console.log('📊 纳斯达克更新:', price);
+                const result = await fetchNasdaqPrice();
+                if (result) {
+                    nasdaqPrice = result.price;
+                    nasdaqIsMock = result.isMock;
+                    console.log('📊 纳斯达克更新:', result.price, result.isMock ? '(模拟)' : '(真实)');
                     for (let index of selectedCoins) {
                         const coin = COINS[index];
                         if (coin.name === 'IXIC' && !basePrices[coin.symbol]) {
-                            basePrices[coin.symbol] = price;
+                            basePrices[coin.symbol] = result.price;
                         }
                     }
                     renderVS();
                 } else if (selectedCoins.some(i => COINS[i].name === 'IXIC')) {
                     // 如果失败次数超过3次，在结论区显示提示
                     if (nasdaqFailCount >= 3) {
-                        document.getElementById('conclusionText').textContent = '⚠️ 纳斯达克数据获取失败，请检查网络或稍后重试';
+                        document.getElementById('conclusionText').textContent = '⚠️ 纳斯达克数据获取失败，使用模拟数据';
                     }
                 }
                 nasdaqLoopTimer = setTimeout(nasdaqLoop, nasdaqInterval * 1000);
